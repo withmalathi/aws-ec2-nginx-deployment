@@ -1,93 +1,180 @@
 # AWS EC2 + NGINX Web Application Deployment
 
-## 1. Project Overview
+A beginner-friendly, step-by-step AWS lab that prepares an EC2 environment for a basic NGINX web server. The project is being documented as the work progresses, with commands, observed results, screenshots, and verification notes.
 
-This project demonstrates how to prepare an AWS environment for deploying a basic web application on an EC2 instance and serving it using NGINX.
+> **Current status:** AWS CLI access and read-only environment discovery are in progress/completed for the checks listed below. **No EC2 instance has been launched, NGINX has not been installed, and no web application has been deployed.**
 
-We will first verify AWS access, permissions, and networking. After the prerequisites are confirmed, the project can proceed to EC2 provisioning, NGINX installation, website verification, and troubleshooting.
+## Contents
 
-This README documents the preparation completed so far. It does not claim that the web application has been deployed.
-
-## 2. Project Objectives
-
-By completing this project, we aim to learn how to:
-
-- Configure the AWS CLI using a named profile.
-- Verify the identity used to access AWS.
-- Configure an IAM user and group with limited permissions.
-- Understand EC2 discovery permissions.
-- Inspect the default VPC and its subnets.
-- Prepare the environment for an EC2 instance.
-- Deploy and verify a basic NGINX web server in a later stage.
-- Document commands, expected results, and troubleshooting steps.
-
-## 3. Environment and Configuration
-
-| Item | Current configuration |
-|---|---|
-| Local environment | WSL Ubuntu |
-| Project directory | `~/projects/aws-ec2-nginx-deployment` |
-| AWS Region | `us-west-2` |
-| Region name | US West (Oregon) |
-| AWS CLI profile | `ec2-nginx-lab` |
-| IAM user | `ec2-nginx-lab-user` |
-| IAM group | `EC2-NGINX-Lab-Group` |
-| IAM discovery policy | `EC2-NGINX-Lab-Discovery` |
-| VPC | Default VPC |
-| EC2 instance | Not launched |
-| NGINX deployment | Not started |
-
-**Security note:** AWS access keys and secret access keys must remain private. Never paste their actual values into GitHub, a README, screenshots, or public messages.
+- [1. Project overview](#1-project-overview)
+- [2. Objectives](#2-objectives)
+- [3. Environment](#3-environment)
+- [4. Repository layout](#4-repository-layout)
+- [5. IAM setup](#5-iam-setup)
+- [6. Configure and verify AWS CLI](#6-configure-and-verify-aws-cli)
+- [7. Verify existing EC2 resources](#7-verify-existing-ec2-resources)
+- [8. Inspect the default VPC and subnets](#8-inspect-the-default-vpc-and-subnets)
+- [9. Inspect routing and Internet Gateway](#9-inspect-routing-and-internet-gateway)
+- [10. Inspect the network ACL](#10-inspect-the-network-acl)
+- [11. Check the AMI and instance type](#11-check-the-ami-and-instance-type)
+- [12. Check public-IP behavior](#12-check-public-ip-behavior)
+- [13. Inspect the existing security group](#13-inspect-the-existing-security-group)
+- [14. Verified findings](#14-verified-findings)
+- [15. Pending work](#15-pending-work)
+- [16. Security and cost notes](#16-security-and-cost-notes)
+- [17. Troubleshooting notes](#17-troubleshooting-notes)
 
 ---
 
-## 4. Prerequisites
+## 1. Project overview
 
-Before proceeding with the deployment, we need:
+This project demonstrates how to prepare an AWS environment for deploying a basic web application on an EC2 instance and serving it using NGINX.
 
-1. An AWS account.
-2. AWS CLI installed in WSL Ubuntu.
-3. An IAM identity with the required permissions.
-4. AWS CLI credentials configured locally.
-5. A verified AWS Region.
-6. A suitable VPC and subnet.
-7. An EC2 key pair or another supported secure access method.
-8. An appropriately configured security group.
-9. Permission to create and manage the resources required by the lab.
+The workflow deliberately begins with **read-only discovery**. Before creating resources, we verify the AWS identity, permissions, VPC, subnets, routes, Internet Gateway, network ACL, AMI options, instance-type specifications, and existing security groups.
 
-At this stage, we have verified AWS CLI authentication and selected EC2 discovery permissions. We have not yet verified all permissions needed to launch an EC2 instance.
+The later deployment phase will cover EC2 provisioning, secure access, NGINX installation, website verification, troubleshooting, and cleanup.
 
-## 5. IAM User and Group Setup
+## 2. Objectives
 
-### 5.1 Create an IAM group
+By completing this project, we aim to learn how to:
 
-The IAM group created for this lab is:
+- Configure AWS CLI with a named profile.
+- Verify which IAM identity is being used.
+- Use an IAM group and a discovery-only policy.
+- Inspect EC2 resources without launching an instance.
+- Understand VPCs, subnets, route tables, Internet Gateways, network ACLs, and security groups.
+- Select an appropriate Amazon Machine Image (AMI) and EC2 instance type.
+- Deploy and verify NGINX in a later stage.
+- Record the process with reproducible commands, expected results, screenshots, and troubleshooting notes.
+
+## 3. Environment
+
+| Item | Current value |
+|---|---|
+| Local terminal | WSL Ubuntu |
+| Project directory | `~/projects/aws-ec2-nginx-deployment` |
+| AWS CLI profile | `ec2-nginx-lab` |
+| AWS Region | `us-west-2` |
+| Region name | US West (Oregon) |
+| IAM user | `ec2-nginx-lab-user` |
+| IAM group | `EC2-NGINX-Lab-Group` |
+| Inline IAM policy | `EC2-NGINX-Lab-Discovery` |
+| VPC | Default VPC |
+| EC2 instance | **Not launched** |
+| NGINX | **Not installed** |
+| Web application | **Not deployed** |
+
+**Credential safety:** Never commit access keys, secret access keys, session tokens, private keys, or unredacted credential screenshots. Enter credentials only into the appropriate local credential configuration flow. If a credential is accidentally exposed, rotate or revoke it promptly.
+
+## 4. Repository layout
+
+The screenshots are stored in the `screenshots/` directory. The image paths in this README are relative to the repository root, so they will render on GitHub when the images are committed alongside `README.md`.
+
+```text
+aws-ec2-nginx-deployment/
+├── README.md
+└── screenshots/
+    ├── 1-dashboard-iam-global.png
+    ├── 2-iam-users-iam-global.png
+    ├── 3-create-user-iam-global.png
+    ├── 4-1-create-user-group-iam-global.png
+    ├── 4-2-create-user-group-iam-global.png
+    ├── 5-create-user-group-added.png
+    ├── 6-1-create-user-iam-global.png
+    ├── 6-2-user-created.png
+    ├── 7-1-iam-user-groups.png
+    ├── 7-2-ec2-nginx-lab-group-add-users.png
+    ├── 7-3-add-users-selected.png
+    ├── 7-4-ec2-nginx-lab-group-iam-global-user-added-in-group.png
+    ├── 8-1-choose-permissions.png
+    ├── 8-2-create-policy-select-json.png
+    ├── 8-3-remove-existing-json.png
+    ├── 8-4-replace-json-and-next.png
+    ├── 8-5-ec2-describeroutetables-json-and-next.png
+    ├── 8-6-policy-updated.png
+    ├── 9-1-create-policy-iam.png
+    ├── 9-2-ec2-nginx-lab-group-iam-permissions-created.png
+    ├── 9-3-policy-is-attached-to-your-new-user-through-the-group.png
+    ├── 10-1-ec2-nginx-lab-user-create-access-key.png
+    ├── 10-2-select-command-line-interface-cli.png
+    ├── 10-3-create-access-key-tag.png
+    ├── 10-4-save-the-new-key-securely.png
+    ├── 10-5-configure-the-profile-and-then-run-verification.png
+    ├── 10-6-ec2-nginx-lab-user-iam-global.png
+    ├── 10-7-default-vpc-available-in-oregon.png
+    ├── 10-8-default-subnets-available-in-oregon.png
+    ├── 11-1-inspect-existing-security-groups.png
+    ├── 11-2-inspect-the-security-groups-inbound-rules.png
+    ├── 11-3-inspect-the-security-groups-outbound-rules.png
+    ├── 11-4-inspect-the-vpc-route-table.png
+    ├── 11-4-verify-the-route-tables-associations.png
+    ├── 11-5-check-the-internet-gateway.png
+    ├── 11-6-check-network-acls.png
+    ├── 11-7-verify-the-ami-and-instance-type.png
+    ├── 11-8-verify-the-ec2-instance-type.png
+    ├── 11-9-check-the-default-subnets-public-ip-setting.png
+    └── 11-10-check-the-ec2-security-group-options.png
+```
+
+> The screenshot filenames above reflect the current local directory listing. If a file is renamed, update its reference in this README.
+
+---
+
+## 5. IAM setup
+
+### 5.1 Create the lab IAM group
+
+The group created for this lab is:
 
 `EC2-NGINX-Lab-Group`
 
-An IAM group allows permissions to be managed centrally and assigned to its member users.
+IAM groups make it easier to manage permissions for users performing the same lab tasks.
 
-### 5.2 Create an IAM user
+![IAM dashboard](screenshots/1-dashboard-iam-global.png)
 
-The IAM user created for this lab is:
+### 5.2 Create the lab IAM user
+
+The user created for the lab is:
 
 `ec2-nginx-lab-user`
 
-Console access was disabled for this user because the current workflow uses the AWS CLI from WSL Ubuntu.
+The user is intended for AWS CLI access from WSL Ubuntu. Console sign-in was not enabled for this user.
+
+![IAM users page](screenshots/2-iam-users-iam-global.png)
+
+![Create IAM user](screenshots/3-create-user-iam-global.png)
+
+![IAM user creation step](screenshots/6-1-create-user-iam-global.png)
+
+![IAM user created](screenshots/6-2-user-created.png)
 
 ### 5.3 Add the user to the group
 
 The user `ec2-nginx-lab-user` was added to `EC2-NGINX-Lab-Group`.
 
-This allows the user to receive permissions through the group policy.
+![Create user group](screenshots/4-1-create-user-group-iam-global.png)
 
-### 5.4 Create the discovery policy
+![Create user group additional step](screenshots/4-2-create-user-group-iam-global.png)
 
-An inline IAM policy named `EC2-NGINX-Lab-Discovery` was attached to the group.
+![Group created](screenshots/5-create-user-group-added.png)
 
-The policy allows selected EC2 read-only discovery operations. It does not grant permission to launch, stop, or terminate EC2 instances.
+![IAM user groups](screenshots/7-1-iam-user-groups.png)
 
-The policy JSON used was:
+![Add users to the group](screenshots/7-2-ec2-nginx-lab-group-add-users.png)
+
+![Select user for the group](screenshots/7-3-add-users-selected.png)
+
+![User added to the lab group](screenshots/7-4-ec2-nginx-lab-group-iam-global-user-added-in-group.png)
+
+### 5.4 Create and attach the discovery policy
+
+The inline policy is named:
+
+`EC2-NGINX-Lab-Discovery`
+
+Its purpose is to allow selected **read-only discovery operations**. It is not intended to authorize instance creation, security-group modification, key-pair creation, or other deployment changes.
+
+The policy's action list was expanded as additional read-only checks returned `UnauthorizedOperation`. The current intended action list is:
 
 ```json
 {
@@ -101,8 +188,11 @@ The policy JSON used was:
         "ec2:DescribeImages",
         "ec2:DescribeInstanceTypes",
         "ec2:DescribeInstances",
+        "ec2:DescribeInternetGateways",
         "ec2:DescribeKeyPairs",
+        "ec2:DescribeNetworkAcls",
         "ec2:DescribeRegions",
+        "ec2:DescribeRouteTables",
         "ec2:DescribeSecurityGroups",
         "ec2:DescribeSubnets",
         "ec2:DescribeVpcs"
@@ -113,48 +203,65 @@ The policy JSON used was:
 }
 ```
 
-#### Understanding the policy
+> This is the policy content intended to reflect the permissions added during discovery. Verify the saved policy in the AWS Console if you need to confirm its current live contents.
 
-- `Version`: Specifies the IAM policy language version.
-- `Statement`: Contains the permission rules.
-- `Sid`: A descriptive identifier for this statement.
-- `Effect: Allow`: Allows the listed actions, subject to other applicable IAM policies and restrictions.
-- `Action`: Lists the permitted EC2 discovery operations.
-- `Resource: "*"`: Applies these describe permissions across resources supported by these actions.
+![Choose policy permissions](screenshots/8-1-choose-permissions.png)
 
-**Important:** This policy is intended for discovery and inspection. It is not a complete deployment policy. Additional carefully scoped permissions will be required for later resource-creation tasks.
+![Create policy using JSON](screenshots/8-2-create-policy-select-json.png)
 
-## 6. Configure AWS CLI Using a Named Profile
+![Replace policy JSON](screenshots/8-3-remove-existing-json.png)
 
-### 6.1 Start AWS CLI configuration
+![Review the discovery policy JSON](screenshots/8-4-replace-json-and-next.png)
 
-Run this command in WSL Ubuntu:
+![Add route-table discovery permission](screenshots/8-5-ec2-describeroutetables-json-and-next.png)
+
+![Policy updated](screenshots/8-6-policy-updated.png)
+
+![Create IAM policy](screenshots/9-1-create-policy-iam.png)
+
+![Policy attached to group](screenshots/9-2-ec2-nginx-lab-group-iam-permissions-created.png)
+
+![Policy inherited by the lab user through the group](screenshots/9-3-policy-is-attached-to-your-new-user-through-the-group.png)
+
+#### Policy explanation
+
+| Policy element | Meaning |
+|---|---|
+| `Version` | IAM policy language version |
+| `Statement` | Contains the permission statement |
+| `Sid` | A descriptive identifier for the statement |
+| `Effect: Allow` | Allows the listed actions, subject to other applicable policies and restrictions |
+| `Action` | Lists the permitted EC2 discovery operations |
+| `Resource: "*"` | Uses all-resource scope for these supported describe actions |
+
+The policy is for discovery only. The permissions required to create or modify deployment resources must be planned separately and granted only when needed.
+
+---
+
+## 6. Configure and verify AWS CLI
+
+### 6.1 Configure a named profile
+
+Run in WSL Ubuntu:
 
 ```bash
 aws configure --profile ec2-nginx-lab
 ```
 
-The terminal prompts for four values.
+Enter the access key and secret access key for the lab identity when prompted. Use the following non-secret configuration values:
 
 ```text
-AWS Access Key ID [None]:
-AWS Secret Access Key [None]:
-Default region name [None]: us-west-2
-Default output format [None]: json
+Default region name: us-west-2
+Default output format: json
 ```
 
-Enter the access key and secret access key created for `ec2-nginx-lab-user` directly into your terminal when prompted. Do not place actual credential values in this README.
+Do not put actual credential values into this README.
 
-The configured values are:
+The named profile keeps the lab's configuration separate from the default AWS CLI profile.
 
-- Profile name: `ec2-nginx-lab`
-- Region: `us-west-2`
-- Output format: `json`
-- Credential storage: AWS CLI shared credentials file
+![Configure AWS CLI and verify the profile](screenshots/10-5-configure-the-profile-and-then-run-verification.png)
 
-The CLI may display an informational tip about `aws login`. This does not mean the configuration failed. The subsequent identity verification is the important check.
-
-### 6.2 Verify the AWS identity
+### 6.2 Verify the active AWS identity
 
 Run:
 
@@ -162,29 +269,17 @@ Run:
 aws sts get-caller-identity --profile ec2-nginx-lab
 ```
 
-The command returned a successful response in this form:
+The command succeeded and identified the caller as the lab IAM user. The account number and user ID are intentionally not reproduced here.
 
-```json
-{
-    "UserId": "*************",
-    "Account": "*************",
-    "Arn": "arn:aws:iam::*************:user/ec2-nginx-lab-user"
-}
+The ARN had this form:
+
+```text
+arn:aws:iam::<AWS_ACCOUNT_ID>:user/ec2-nginx-lab-user
 ```
 
-The account and user identifier values are masked here for privacy.
+**Result: Passed.** AWS authentication works with the `ec2-nginx-lab` profile.
 
-#### What does this command do?
-
-`aws sts get-caller-identity` asks AWS Security Token Service to identify the IAM identity used for the request.
-
-The `--profile ec2-nginx-lab` option ensures that the command uses the named profile instead of relying on the default profile.
-
-The ARN confirms that the configured identity is `ec2-nginx-lab-user`.
-
-**Result: Passed.** AWS authentication works with the named profile.
-
-### 6.3 Verify the CLI configuration
+### 6.3 Verify profile configuration
 
 Run:
 
@@ -192,38 +287,38 @@ Run:
 aws configure list --profile ec2-nginx-lab
 ```
 
-The observed output was:
+The observed configuration showed:
 
-```text
-NAME       : VALUE                    : TYPE                     : LOCATION
-profile    : ec2-nginx-lab            : manual                   : --profile
-access_key : ****************         : shared-credentials-file  :
-secret_key : ****************         : shared-credentials-file  :
-region     : us-west-2                : config-file              : ~/.aws/config
-```
+- Profile: `ec2-nginx-lab`
+- Access key source: shared credentials file
+- Secret key source: shared credentials file
+- Region: `us-west-2`, read from the AWS CLI configuration file
 
-The credential values are masked. The displayed secret-key suffix is included only to reflect the observed terminal output; never publish actual credential material.
+The credential values should remain masked in any screenshot or shared output.
 
-#### What does this output tell us?
+**Result: Passed.** The expected profile and region were confirmed.
 
-- `profile`: The command uses `ec2-nginx-lab`.
-- `access_key`: The access key is loaded from the shared credentials file.
-- `secret_key`: The secret access key is loaded from the shared credentials file.
-- `region`: The configured Region is `us-west-2`.
-- `~/.aws/config`: The AWS CLI configuration file stores the Region and other profile configuration.
-- `~/.aws/credentials`: The shared credentials file normally stores the access key and secret access key.
+### 6.4 Create access keys securely
 
-**Result: Passed.** The expected profile and Region are configured.
+The screenshots document the CLI access-key creation flow. Access keys are credentials, not ordinary configuration data. Store them securely, do not commit them to Git, and never include their values in screenshots.
+
+![Create an access key for the lab user](screenshots/10-1-ec2-nginx-lab-user-create-access-key.png)
+
+![Choose CLI as the use case](screenshots/10-2-select-command-line-interface-cli.png)
+
+![Add an access-key tag](screenshots/10-3-create-access-key-tag.png)
+
+![Save the new key securely](screenshots/10-4-save-the-new-key-securely.png)
+
+![Lab IAM user](screenshots/10-6-ec2-nginx-lab-user-iam-global.png)
 
 ---
 
-## 7. Verify EC2 Discovery Permissions
+## 7. Verify existing EC2 resources
 
-Before creating an EC2 instance, verify that the IAM user can inspect the existing EC2 environment.
+All commands in this section are read-only.
 
-### 7.1 Check existing EC2 instances
-
-Run:
+### 7.1 Check existing instances
 
 ```bash
 aws ec2 describe-instances \
@@ -232,30 +327,11 @@ aws ec2 describe-instances \
   --output table
 ```
 
-Observed output:
+The command succeeded and returned an empty table—no instances were returned for this identity and region.
 
-```text
--------------------
-|DescribeInstances|
-+-----------------+
-```
+**Result: Passed.** The identity can call `ec2:DescribeInstances`; no existing instances were returned by this query.
 
-#### Explanation
-
-- `aws ec2 describe-instances`: Requests information about EC2 instances.
-- `--region us-west-2`: Runs the request in Oregon.
-- `--profile ec2-nginx-lab`: Uses the configured IAM user.
-- `--output table`: Formats the result as a table.
-
-The command succeeded, but no instances were returned in the displayed output.
-
-This is a valid result when there are no matching instances visible to the IAM identity in that Region.
-
-**Result: Passed.** The user can run `DescribeInstances`.
-
-### 7.2 Check existing EC2 key pairs
-
-Run:
+### 7.2 Check existing key pairs
 
 ```bash
 aws ec2 describe-key-pairs \
@@ -264,35 +340,17 @@ aws ec2 describe-key-pairs \
   --output table
 ```
 
-Observed output:
+The command succeeded and returned an empty table—no EC2 key pairs were returned in this region.
 
-```text
-------------------
-|DescribeKeyPairs|
-+----------------+
-```
-
-#### Explanation
-
-An EC2 key pair is commonly used to authenticate SSH access to a Linux EC2 instance.
-
-The command lists key pairs visible in the selected Region.
-
-The empty table indicates that no key pairs were returned.
-
-**Result: Passed.** The user can run `DescribeKeyPairs`. We have not created a key pair yet.
+**Result: Passed.** The identity can call `ec2:DescribeKeyPairs`. A key pair has not been created for this lab.
 
 ---
 
-## 8. Inspect the Default VPC
+## 8. Inspect the default VPC and subnets
 
-### 8.1 Why do we need a VPC?
+### 8.1 Discover the VPC
 
-A Virtual Private Cloud (VPC) is a logically isolated network in AWS. An EC2 instance must be associated with a VPC and a subnet.
-
-For this beginner lab, we will inspect the existing default VPC before considering whether any network resources need to be created.
-
-### 8.2 List VPCs in Oregon
+A VPC is a logically isolated network in AWS. EC2 instances launch into a subnet within a VPC.
 
 Run:
 
@@ -304,56 +362,22 @@ aws ec2 describe-vpcs \
   --output table
 ```
 
-Observed output:
+The command returned this VPC:
 
-```text
-----------------------------------------------------------------------
-|                            DescribeVpcs                            |
-+----------------+------------+------------+-------------------------+
-|    CidrBlock   | IsDefault  |   State    |          VpcId          |
-+----------------+------------+------------+-------------------------+
-|  172.31.0.0/16 |  True      |  available |  vpc-0307ce67a0df86851  |
-+----------------+------------+------------+-------------------------+
-```
+| Field | Observed value |
+|---|---|
+| VPC ID | `vpc-0307ce67a0df86851` |
+| State | `available` |
+| Default VPC | `True` |
+| IPv4 CIDR | `172.31.0.0/16` |
 
-#### Understanding the command
+The CIDR is the VPC's private IPv4 address range; it is not the public IP address of an EC2 instance.
 
-- `describe-vpcs`: Lists VPCs available to the current identity in the selected Region.
-- `--region us-west-2`: Limits the request to Oregon.
-- `--profile ec2-nginx-lab`: Uses the named IAM profile.
-- `--query`: Selects the fields we want to display.
-- `VpcId`: The VPC identifier.
-- `State`: The VPC state.
-- `IsDefault`: Indicates whether AWS identifies the VPC as the default VPC.
-- `CidrBlock`: The VPC's IPv4 address range.
-- `--output table`: Displays the selected fields in a readable table.
+![Default VPC available in Oregon](screenshots/10-7-default-vpc-available-in-oregon.png)
 
-#### Results
+**Result: Passed.** An available default VPC was found. No VPC was created or modified.
 
-| Field | Observed value | Meaning |
-|---|---|---|
-| VPC ID | `vpc-0307ce67a0df86851` | Identifier of the discovered VPC |
-| State | `available` | The VPC is available |
-| IsDefault | `True` | AWS identifies it as the default VPC |
-| CIDR block | `172.31.0.0/16` | The VPC's IPv4 address range |
-
-The `172.31.0.0/16` range contains private IPv4 addresses. The CIDR block is the overall network range, not the public IP address of an EC2 instance.
-
-**Result: Passed.** A default VPC is available in Oregon.
-
-No VPC was created or modified.
-
----
-
-## 9. Inspect Subnets in the Default VPC
-
-### 9.1 What is a subnet?
-
-A subnet is a smaller IP address range within a VPC. An EC2 instance is launched into a subnet, which is associated with an Availability Zone.
-
-Subnets, route tables, internet gateways, and security groups all contribute to how an instance communicates with other resources and the internet.
-
-### 9.2 List subnets belonging to the discovered VPC
+### 8.2 Discover subnets
 
 Run:
 
@@ -366,104 +390,395 @@ aws ec2 describe-subnets \
   --output table
 ```
 
-Observed output:
+Four available default subnets were returned:
 
-```text
--------------------------------------------------------------------------------------------------------
-|                                           DescribeSubnets                                           |
-+------------+-----------------+---------------+-----------+------------+-----------------------------+
-|     AZ     |      CIDR       | DefaultForAZ  | PublicIP  |   State    |          SubnetId           |
-+------------+-----------------+---------------+-----------+------------+-----------------------------+
-|  us-west-2a|  172.31.32.0/20 |  True         |  True     |  available |  subnet-02ecdd68edfbf7326   |
-|  us-west-2c|  172.31.0.0/20  |  True         |  True     |  available |  subnet-003413e14c2375f32   |
-|  us-west-2d|  172.31.48.0/20 |  True         |  True     |  available |  subnet-0ce894c858eab9c2e   |
-|  us-west-2b|  172.31.16.0/20 |  True         |  True     |  available |  subnet-006fde08c5f4e902c  |
-+------------+-----------------+---------------+-----------+------------+-----------------------------+
+| Availability Zone | Subnet ID | CIDR | Default subnet for AZ | Auto-assign public IPv4 |
+|---|---|---|---|---|
+| `us-west-2a` | `subnet-02ecdd68edfbf7326` | `172.31.32.0/20` | Yes | Yes |
+| `us-west-2c` | `subnet-003413e14c2375f32` | `172.31.0.0/20` | Yes | Yes |
+| `us-west-2d` | `subnet-0ce894c858eab9c2e` | `172.31.48.0/20` | Yes | Yes |
+| `us-west-2b` | `subnet-006fde08c5f4e902c` | `172.31.16.0/20` | Yes | Yes |
+
+`MapPublicIpOnLaunch: True` means the subnet is configured to assign public IPv4 addresses to instances by default, unless overridden at launch. It does not, by itself, guarantee internet connectivity.
+
+![Default subnets available in Oregon](screenshots/10-8-default-subnets-available-in-oregon.png)
+
+**Result: Passed.** Four available default subnets were discovered. No subnet was created or modified.
+
+### 8.3 Verify the chosen subnet's public-IP setting
+
+For a closer inspection of the subnet in `us-west-2a`, run:
+
+```bash
+aws ec2 describe-subnets \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --subnet-ids subnet-02ecdd68edfbf7326 \
+  --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,Cidr:CidrBlock,State:State,MapPublicIpOnLaunch:MapPublicIpOnLaunch,VpcId:VpcId}" \
+  --output table
 ```
 
-### 9.3 Understanding the subnet command
+Observed values:
 
-- `describe-subnets`: Requests information about subnets.
-- `--filters "Name=vpc-id,Values=..."`: Returns only subnets associated with the specified VPC.
-- `SubnetId`: The identifier of each subnet.
-- `AvailabilityZone`: The Availability Zone containing the subnet.
-- `State`: The current subnet state.
-- `DefaultForAz`: Indicates whether the subnet is the default subnet for its Availability Zone.
-- `MapPublicIpOnLaunch`: Indicates whether instances launched into the subnet are configured to receive a public IPv4 address by default, subject to launch configuration and other conditions.
-- `CidrBlock`: The subnet's IPv4 address range.
+- Subnet: `subnet-02ecdd68edfbf7326`
+- Availability Zone: `us-west-2a`
+- CIDR: `172.31.32.0/20`
+- State: `available`
+- `MapPublicIpOnLaunch`: `True`
+- VPC: `vpc-0307ce67a0df86851`
 
-### 9.4 Results
-
-| Availability Zone | Subnet ID | CIDR block | Default subnet | Auto-assign public IPv4 | State |
-|---|---|---|---|---|---|
-| `us-west-2a` | `subnet-02ecdd68edfbf7326` | `172.31.32.0/20` | Yes | Yes | `available` |
-| `us-west-2c` | `subnet-003413e14c2375f32` | `172.31.0.0/20` | Yes | Yes | `available` |
-| `us-west-2d` | `subnet-0ce894c858eab9c2e` | `172.31.48.0/20` | Yes | Yes | `available` |
-| `us-west-2b` | `subnet-006fde08c5f4e902c` | `172.31.16.0/20` | Yes | Yes | `available` |
-
-We found four available default subnets across four Availability Zones.
-
-The `PublicIP` column in the command's output corresponds to `MapPublicIpOnLaunch`. A value of `True` indicates the subnet's default public-IP assignment setting; it does not by itself prove that an instance will be reachable from the internet. Internet reachability also depends on routing, security-group rules, network ACLs, and other configuration.
-
-**Result: Passed.** We have identified available subnets in the default VPC.
-
-No subnet was created or modified.
+![Check the subnet's public-IP setting](screenshots/11-9-check-the-default-subnets-public-ip-setting.png)
 
 ---
 
-## 10. Progress Checklist
+## 9. Inspect routing and Internet Gateway
 
-The following work has been completed and verified.
+### 9.1 Discover route tables
 
-- [x] AWS account is available.
-- [x] IAM group `EC2-NGINX-Lab-Group` created.
-- [x] IAM user `ec2-nginx-lab-user` created.
-- [x] Console access disabled for the lab user.
-- [x] Lab user added to the IAM group.
-- [x] Discovery policy `EC2-NGINX-Lab-Discovery` attached to the group.
-- [x] AWS CLI profile `ec2-nginx-lab` configured.
-- [x] AWS identity verified using STS.
-- [x] CLI profile and Region verified.
-- [x] EC2 instance discovery command succeeded.
-- [x] EC2 key-pair discovery command succeeded.
-- [x] Default VPC identified.
-- [x] Four available subnets identified.
+Run:
 
-## 11. What Has Not Been Done Yet?
+```bash
+aws ec2 describe-route-tables \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" \
+  --query "RouteTables[].{RouteTableId:RouteTableId,Associations:Associations[].SubnetId,Routes:Routes[].{Destination:DestinationCidrBlock,Gateway:GatewayId,State:State}}" \
+  --output json
+```
 
-The following steps remain pending.
+The discovered route table was `rtb-0bc5c0a06e2d2b2c0`. Its routes were:
 
-- [ ] Confirm the existing security groups.
-- [ ] Inspect the VPC's route table and internet gateway configuration.
-- [ ] Decide on a key-pair and SSH access approach.
-- [ ] Design and attach the additional IAM permissions needed for the lab.
-- [ ] Confirm the EC2 instance type and operating system image.
-- [ ] Review potential AWS charges and free-tier eligibility before provisioning.
-- [ ] Launch the EC2 instance.
-- [ ] Verify instance status and connectivity.
+| Destination | Target | State | Meaning |
+|---|---|---|---|
+| `172.31.0.0/16` | `local` | `active` | Route for traffic within the VPC |
+| `0.0.0.0/0` | `igw-0b25879d76a25f195` | `active` | Default IPv4 route toward the Internet Gateway |
+
+The route table initially showed no explicit subnet associations.
+
+![Inspect the VPC route table](screenshots/11-4-inspect-the-vpc-route-table.png)
+
+### 9.2 Verify the route table's main association
+
+Run:
+
+```bash
+aws ec2 describe-route-tables \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --route-table-ids rtb-0bc5c0a06e2d2b2c0 \
+  --query "RouteTables[].{RouteTableId:RouteTableId,MainAssociations:Associations[?Main==\`true\`].{Main:Main,VpcId:RouteTableId},SubnetAssociations:Associations[?SubnetId!=null].SubnetId}" \
+  --output json
+```
+
+The result confirmed:
+
+- Route table: `rtb-0bc5c0a06e2d2b2c0`
+- `Main: true`
+- No explicit subnet associations listed
+
+**Note about the query:** The output key named `VpcId` in this command was mistakenly populated from `RouteTableId`. Therefore, that displayed field is not the VPC ID. The main-association result itself confirms that this is the main route table. The actual VPC ID was independently confirmed as `vpc-0307ce67a0df86851`.
+
+![Verify the main route-table association](screenshots/11-4-verify-the-route-tables-associations.png)
+
+Subnets without explicit route-table associations use the VPC's main route table.
+
+### 9.3 Verify the Internet Gateway attachment
+
+Run:
+
+```bash
+aws ec2 describe-internet-gateways \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --internet-gateway-ids igw-0b25879d76a25f195 \
+  --query "InternetGateways[].{InternetGatewayId:InternetGatewayId,Attachments:Attachments[].{VpcId:VpcId,State:State}}" \
+  --output json
+```
+
+The command confirmed that:
+
+- Internet Gateway: `igw-0b25879d76a25f195`
+- Attached VPC: `vpc-0307ce67a0df86851`
+- Attachment state: `available`
+
+![Check the Internet Gateway attachment](screenshots/11-5-check-the-internet-gateway.png)
+
+**Networking interpretation:** An active default route and an attached Internet Gateway are important prerequisites for public IPv4 internet routing. They do not alone guarantee that a particular instance will be reachable. Public-IP assignment, security groups, network ACLs, host configuration, and other conditions still apply.
+
+---
+
+## 10. Inspect the network ACL
+
+A network ACL (NACL) is a subnet-level traffic filter. Unlike security groups, network ACLs are **stateless**, so inbound and outbound traffic must be considered separately.
+
+Run:
+
+```bash
+aws ec2 describe-network-acls \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" \
+  --query "NetworkAcls[].{NetworkAclId:NetworkAclId,IsDefault:IsDefault,Associations:Associations[].SubnetId,Entries:Entries[].{RuleNumber:RuleNumber,Protocol:Protocol,RuleAction:RuleAction,Egress:Egress,CidrBlock:CidrBlock,PortRange:PortRange}}" \
+  --output json
+```
+
+The command returned:
+
+- Network ACL: `acl-0d28ab2e0e6e79bf6`
+- Default ACL: `true`
+- Associated subnets: all four subnets discovered above
+- Rule `100`: allow all protocols for IPv4 `0.0.0.0/0`, for both inbound (`Egress: false`) and outbound (`Egress: true`)
+- Rule `32767`: deny-all catch-all, for both directions
+
+![Check the network ACL](screenshots/11-6-check-network-acls.png)
+
+The rule numbered `100` is evaluated before the catch-all rule `32767`. Since the allow rule matches all IPv4 traffic, the later deny rule does not override it.
+
+**Security note:** `0.0.0.0/0` means all IPv4 addresses. We should not rely on the default NACL to restrict access to the Nginx instance. The instance's security group should allow only the intended inbound traffic.
+
+---
+
+## 11. Check the AMI and instance type
+
+### 11.1 Discover Amazon Linux 2023 AMIs
+
+Run:
+
+```bash
+aws ec2 describe-images \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --owners amazon \
+  --filters \
+    "Name=name,Values=al2023-ami-2023.*-x86_64" \
+    "Name=state,Values=available" \
+    "Name=architecture,Values=x86_64" \
+    "Name=root-device-type,Values=ebs" \
+  --query "Images | sort_by(@, &CreationDate)[-5:].{ImageId:ImageId,Name:Name,CreationDate:CreationDate,Architecture:Architecture}" \
+  --output json
+```
+
+Five available Amazon Linux 2023 AMIs were returned. Examples from the observed output include:
+
+| AMI ID | Image name | Architecture |
+|---|---|---|
+| `ami-0e0fcdc77c6355731` | `al2023-ami-2023.12.20261021.0-kernel-6.18-x86_64` | `x86_64` |
+| `ami-0ce59d8f4219233f7` | `al2023-ami-2023.12.20261021.0-kernel-6.12-x86_64` | `x86_64` |
+| `ami-0f4093d08169978db` | `al2023-ami-2023.12.20261026.1-kernel-6.12-x86_64` | `x86_64` |
+| `ami-074462d12abec759f` | `al2023-ami-2023.12.20261026.1-kernel-6.1-x86_64` | `x86_64` |
+| `ami-0829b74b2a8c619b7` | `al2023-ami-2023.12.20261026.1-kernel-6.18-x86_64` | `x86_64` |
+
+The image query returned available images owned by Amazon, with x86-64 architecture and EBS root devices. AMI IDs are region-specific, and the latest available image may change over time.
+
+![Verify available AMIs](screenshots/11-7-verify-the-ami-and-instance-type.png)
+
+**Status:** AMI discovery succeeded. The final AMI selection should be confirmed again immediately before launching the instance.
+
+### 11.2 Check `t3.micro` specifications
+
+Run:
+
+```bash
+aws ec2 describe-instance-types \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --instance-types t3.micro \
+  --query "InstanceTypes[].{InstanceType:InstanceType,Architectures:ProcessorInfo.SupportedArchitectures,vCPUs:VCpuInfo.DefaultVCpus,MemoryMiB:MemoryInfo.SizeInMiB}" \
+  --output table
+```
+
+The output confirmed:
+
+| Property | Result |
+|---|---|
+| Instance type | `t3.micro` |
+| Architecture | `x86_64` |
+| vCPUs | `2` |
+| Memory | `1024 MiB` (1 GiB) |
+
+![Verify the EC2 instance type](screenshots/11-8-verify-the-ec2-instance-type.png)
+
+The `x86_64` instance architecture matches the discovered x86-64 AMI candidates.
+
+**Important:** This command confirms the instance type's specifications. It does not confirm account quota, Availability Zone capacity, launch permissions, or cost eligibility. Check current AWS pricing and account eligibility before provisioning; do not assume the instance is free.
+
+---
+
+## 12. Check public-IP behavior
+
+The subnet `subnet-02ecdd68edfbf7326` in `us-west-2a` returned `MapPublicIpOnLaunch: true`.
+
+This setting means automatic public IPv4 assignment is enabled for launches in that subnet unless the launch configuration overrides it. It does not prove that a running application will be reachable.
+
+The network prerequisites to consider together are:
+
+1. The subnet's public-IP assignment behavior.
+2. The main route table's default route to the Internet Gateway.
+3. The Internet Gateway's attachment to the VPC.
+4. Security-group inbound and outbound rules.
+5. Network ACL inbound and outbound rules.
+6. The instance's operating system and application configuration.
+
+---
+
+## 13. Inspect the existing security group
+
+### 13.1 List security groups in the VPC
+
+Run:
+
+```bash
+aws ec2 describe-security-groups \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" \
+  --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,Description:Description,VpcId:VpcId}" \
+  --output table
+```
+
+Only the default security group was returned:
+
+| Field | Value |
+|---|---|
+| Group ID | `sg-03b944b8175124bda` |
+| Group name | `default` |
+| Description | `default VPC security group` |
+| VPC | `vpc-0307ce67a0df86851` |
+
+![Inspect existing security groups](screenshots/11-1-inspect-existing-security-groups.png)
+
+### 13.2 Inspect the default security group's inbound rules
+
+Run:
+
+```bash
+aws ec2 describe-security-groups \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --group-ids sg-03b944b8175124bda \
+  --query "SecurityGroups[].{GroupId:GroupId,Inbound:IpPermissions}" \
+  --output json
+```
+
+The observed inbound rule allowed all protocols from resources associated with the **same security group**. The output did not show an IPv4 CIDR or IPv6 CIDR as an inbound source.
+
+![Inspect security-group inbound rules](screenshots/11-2-inspect-the-security-groups-inbound-rules.png)
+
+This is not the same as allowing inbound access from the whole internet. The default security group is not the intended public-web access policy for this lab.
+
+### 13.3 Inspect the default security group's outbound rules
+
+Run:
+
+```bash
+aws ec2 describe-security-groups \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --group-ids sg-03b944b8175124bda \
+  --query "SecurityGroups[].{GroupId:GroupId,Outbound:IpPermissionsEgress}" \
+  --output json
+```
+
+The observed outbound rule allowed all protocols to IPv4 destination `0.0.0.0/0`.
+
+![Inspect security-group outbound rules](screenshots/11-3-inspect-the-security-groups-outbound-rules.png)
+
+**Important:** An outbound security-group rule is not proof of internet connectivity. Routing, gateway attachment, public addressing, NACLs, and host configuration also matter.
+
+### 13.4 Decide on the lab security group
+
+Before deployment, create or select a **dedicated security group** for the Nginx instance, using an authorized identity and a deliberate inbound policy. A typical public HTTP demonstration needs inbound TCP port `80` from the intended audience. SSH access on TCP port `22`, if needed, should be restricted to the user's trusted IP address or replaced with an appropriate managed access method. HTTPS on TCP port `443` should be opened only if TLS is configured for the lab.
+
+Do not use a broad inbound rule such as all protocols from `0.0.0.0/0`.
+
+![Check the available security-group options](screenshots/11-10-check-the-ec2-security-group-options.png)
+
+---
+
+## 14. Verified findings
+
+| Check | Result |
+|---|---|
+| AWS CLI named profile | `ec2-nginx-lab` configured |
+| AWS identity | Verified with STS |
+| Region | `us-west-2` |
+| Existing EC2 instances | None returned |
+| Existing EC2 key pairs | None returned |
+| Default VPC | Available |
+| VPC ID | `vpc-0307ce67a0df86851` |
+| VPC CIDR | `172.31.0.0/16` |
+| Default subnets | Four available across four Availability Zones |
+| Main route table | `rtb-0bc5c0a06e2d2b2c0` |
+| Default IPv4 route | Active route to `igw-0b25879d76a25f195` |
+| Internet Gateway | Attached to the VPC, state `available` |
+| Network ACL | Default ACL; allow-all IPv4 entries in both directions |
+| AMI discovery | Amazon Linux 2023 x86-64 candidates found |
+| Instance type specs | `t3.micro`, x86-64, 2 vCPUs, 1 GiB |
+| Public-IP default | Enabled on the inspected subnet |
+| Existing security groups | Only default security group returned |
+| EC2 instance launched | **No** |
+| NGINX installed | **No** |
+| Web application deployed | **No** |
+
+## 15. Pending work
+
+The next steps are still pending. Continue one step at a time and verify each prerequisite before creating resources.
+
+- [ ] Confirm the saved discovery policy contains all the required `Describe*` actions.
+- [ ] Confirm launch permissions with an appropriately authorized identity.
+- [ ] Decide on secure SSH/management access.
+- [ ] Decide whether to use a dedicated security group and finalize inbound rules.
+- [ ] Reconfirm the selected AMI immediately before launch.
+- [ ] Review instance quota, Availability Zone capacity, and current AWS pricing.
+- [ ] Review storage settings and expected charges.
+- [ ] Launch the EC2 instance only after explicit readiness review.
+- [ ] Verify instance state, public IP, and access.
 - [ ] Install NGINX.
-- [ ] Deploy or configure the sample web page.
-- [ ] Verify the website from a browser.
-- [ ] Document troubleshooting and cleanup commands.
+- [ ] Deploy or configure a basic web page.
+- [ ] Verify the website from a browser and with command-line checks.
+- [ ] Record troubleshooting steps and evidence.
+- [ ] Clean up resources at the end of the lab.
 
-## 12. Security and Cost Considerations
+## 16. Security and cost notes
 
-- Keep AWS access keys out of source control.
-- Use a dedicated IAM identity for the lab rather than unrestricted administrative credentials.
-- Grant only the permissions required for each stage.
-- Do not open SSH (port 22) to the entire internet unless there is a justified, temporary need.
-- For a web server, allow only the required inbound HTTP/HTTPS traffic.
-- Review the instance type, storage, public IPv4 usage, and other potential charges before launching resources.
-- Stop or terminate lab resources when they are no longer required, according to the lab's cleanup plan.
+- Never commit AWS credentials or private SSH keys.
+- Use least-privilege IAM permissions.
+- The discovery policy is not a deployment policy.
+- Avoid inbound SSH access from `0.0.0.0/0`.
+- Permit only required inbound web traffic.
+- Review charges for EC2 runtime, EBS storage, public IPv4 addresses, data transfer, and any additional resources.
+- Do not assume that `t3.micro` is free; verify current account eligibility and pricing.
+- Before terminating resources, preserve any evidence or files needed for the project.
+- When finished, verify that billable resources have been stopped or deleted as intended.
 
-## 13. Current Project Status
+## 17. Troubleshooting notes
 
-**Current stage: AWS access and network discovery completed.**
+### `UnauthorizedOperation`
 
-The AWS CLI is authenticated through the `ec2-nginx-lab` profile in `us-west-2`. The selected IAM user can successfully inspect EC2 instances, key pairs, VPCs, and subnets using the tested commands.
+Example:
 
-The default VPC and its four available subnets have been identified. The environment is not yet ready to launch an instance until the remaining network, security, access, and IAM prerequisites are reviewed.
+```text
+You are not authorized to perform: ec2:DescribeNetworkAcls
+```
 
-**No EC2 instance or NGINX web application has been deployed at this point.**
+**Meaning:** The IAM identity does not have an applicable allow for the requested action, or another policy restriction applies.
 
-The next step is to inspect existing security groups and network routing, continuing one verification task at a time.
+**Resolution used in this lab:** Add the specific missing read-only `ec2:Describe...` action to the existing discovery policy, if authorized, then retry the same read-only command. If you cannot edit IAM policies, request help from an authorized administrator. Do not grant yourself broader permissions to bypass the error.
+
+### Empty output from `describe-instances` or `describe-key-pairs`
+
+An empty result can mean no matching resources were returned for the identity and Region. It is not, by itself, evidence of an error.
+
+### An Internet Gateway route does not guarantee reachability
+
+Check public-IP assignment, the route table, gateway attachment, security groups, NACLs, host firewall, and whether the service is listening on the intended port.
+
+---
+
+## Current project status
+
+**AWS access and read-only network discovery have progressed successfully.** The default VPC, subnets, main route table, Internet Gateway attachment, default network ACL, Amazon Linux 2023 AMI candidates, `t3.micro` specifications, subnet public-IP setting, and default security group have been inspected.
+
+The environment is **not yet ready for an instance launch** until the remaining IAM, secure access, security-group, quota, and cost checks are completed.
+
+**No EC2 instance or NGINX web application has been deployed.**
