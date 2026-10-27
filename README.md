@@ -23,52 +23,31 @@ elsewhere in the AWS account.
 ## Contents
 
 -   [1. Project overview](#1-project-overview)
-
 -   [2. Objectives](#2-objectives)
-
 -   [3. Environment](#3-environment)
-
 -   [4. Repository layout](#4-repository-layout)
-
 -   [5. IAM setup](#5-iam-setup)
-
 -   [6. Configure and verify AWS CLI](#6-configure-and-verify-aws-cli)
-
 -   [7. Verify existing EC2 resources](#7-verify-existing-ec2-resources)
-
 -   [8. Inspect the default VPC and
     subnets](#8-inspect-the-default-vpc-and-subnets)
-
 -   [9. Inspect routing and Internet
     Gateway](#9-inspect-routing-and-internet-gateway)
-
 -   [10. Inspect the network ACL](#10-inspect-the-network-acl)
-
 -   [11. Check the AMI and instance
     type](#11-check-the-ami-and-instance-type)
-
 -   [12. Check public-IP behavior](#12-check-public-ip-behavior)
-
 -   [13. Inspect the existing security
     group](#13-inspect-the-existing-security-group)
-
 -   [14. Verified findings](#14-verified-findings)
-
 -   [15. Pending work](#15-pending-work)
-
 -   [16. Security and cost notes](#16-security-and-cost-notes)
-
 -   [17. Troubleshooting notes](#17-troubleshooting-notes)
-
 -   [18. Launch the EC2 instance and install
     NGINX](#18-launch-the-ec2-instance-and-install-nginx)
-
 -   [19. Verify the deployment](#19-verify-the-deployment)
-
 -   [20. Troubleshooting evidence](#20-troubleshooting-evidence)
-
 -   [21. Cleanup and cost control](#21-cleanup-and-cost-control)
-
 -   [22. Current project status](#22-current-project-status)
 
 ------------------------------------------------------------------------
@@ -121,46 +100,29 @@ By completing this project, we aim to learn how to:
 
 ## 3. Environment
 
-| Item \| Current value \|
-
-\|---\|---\|
-
-| Local terminal \| WSL Ubuntu \|
-
-| Project directory \| `\~/projects/aws-ec2-nginx-deployment` \|
-
-| AWS CLI profile \| `ec2-nginx-lab` \|
-
-| AWS Region \| `us-west-2` \|
-
-| Region name \| US West (Oregon) \|
-
-| IAM user \| `ec2-nginx-lab-user` \|
-
-| IAM group \| `EC2-NGINX-Lab-Group` \|
-
-| Inline IAM policy \| `EC2-NGINX-Lab-Discovery` \|
-
-| VPC \| Default VPC \|
-
-| EC2 instance \| `i-0ea3759cfcb87faed` (terminated after successful
-  testing) \|
-
-| Instance type \| `t3.micro` \|
-
-| AMI \| `ami-0f4093d08169978db` (Amazon Linux 2023 x86-64) \|
-
-| Subnet / AZ \| Historical deployment subnet:
-  `subnet-02ecdd68edfbf7326` / `us-west-2a` \|
-
-| Lab security group \| `ec2-nginx-lab-sg` (`sg-01a2155926d1b3e19`;
-  deleted after testing) \|
-
-| NGINX \| Installed; service verified active before instance
-  termination \|
-
-| Website \| HTTP `200 OK` verified before cleanup; see note below about
-  dynamic public IPs no longer available at the old instance endpoint \|
+| Item | Current value |
+|---|---|
+| Local terminal | WSL Ubuntu |
+| Project directory | `\~/projects/aws-ec2-nginx-deployment` |
+| AWS CLI profile | `ec2-nginx-lab` |
+| AWS Region | `us-west-2` |
+| Region name | US West (Oregon) |
+| IAM user | `ec2-nginx-lab-user` |
+| IAM group | `EC2-NGINX-Lab-Group` |
+| Inline IAM policy | `EC2-NGINX-Lab-Discovery` |
+| VPC | Default VPC |
+| EC2 instance | `i-0ea3759cfcb87faed` (terminated after successful
+  testing) |
+| Instance type | `t3.micro` |
+| AMI | `ami-0f4093d08169978db` (Amazon Linux 2023 x86-64) |
+| Subnet / AZ | Historical deployment subnet:
+  `subnet-02ecdd68edfbf7326` / `us-west-2a` |
+| Lab security group | `ec2-nginx-lab-sg` (`sg-01a2155926d1b3e19`;
+  deleted after testing) |
+| NGINX | Installed; service verified active before instance
+  termination |
+| Website | HTTP `200 OK` verified before cleanup; see note below about
+  dynamic public IPs no longer available at the old instance endpoint |
 
 \*\*\*\*Credential safety:\*\*\*\* Never commit access keys, secret
 access keys, session tokens, private keys, or unredacted credential
@@ -179,87 +141,46 @@ render on GitHub when the images are committed alongside `README.md`.
 aws-ec2-nginx-deployment/
 
 ├── README.md
-
 └── screenshots/
-
     ├── 1-dashboard-iam-global.png
-
     ├── 2-iam-users-iam-global.png
-
     ├── 3-create-user-iam-global.png
-
     ├── 4-1-create-user-group-iam-global.png
-
     ├── 4-2-create-user-group-iam-global.png
-
     ├── 5-create-user-group-added.png
-
     ├── 6-1-create-user-iam-global.png
-
     ├── 6-2-user-created.png
-
     ├── 7-1-iam-user-groups.png
-
     ├── 7-2-ec2-nginx-lab-group-add-users.png
-
     ├── 7-3-add-users-selected.png
-
     ├── 7-4-ec2-nginx-lab-group-iam-global-user-added-in-group.png
-
     ├── 8-1-choose-permissions.png
-
     ├── 8-2-create-policy-select-json.png
-
     ├── 8-3-remove-existing-json.png
-
     ├── 8-4-replace-json-and-next.png
-
     ├── 8-5-ec2-describeroutetables-json-and-next.png
-
     ├── 8-6-policy-updated.png
-
     ├── 9-1-create-policy-iam.png
-
     ├── 9-2-ec2-nginx-lab-group-iam-permissions-created.png
-
     ├── 9-3-policy-is-attached-to-your-new-user-through-the-group.png
-
     ├── 10-1-ec2-nginx-lab-user-create-access-key.png
-
     ├── 10-2-select-command-line-interface-cli.png
-
     ├── 10-3-create-access-key-tag.png
-
     ├── 10-4-save-the-new-key-securely.png
-
     ├── 10-5-configure-the-profile-and-then-run-verification.png
-
     ├── 10-6-ec2-nginx-lab-user-iam-global.png
-
     ├── 10-7-default-vpc-available-in-oregon.png
-
     ├── 10-8-default-subnets-available-in-oregon.png
-
     ├── 11-1-inspect-existing-security-groups.png
-
     ├── 11-2-inspect-the-security-groups-inbound-rules.png
-
     ├── 11-3-inspect-the-security-groups-outbound-rules.png
-
     ├── 11-4-inspect-the-vpc-route-table.png
-
     ├── 11-4-verify-the-route-tables-associations.png
-
     ├── 11-5-check-the-internet-gateway.png
-
     ├── 11-6-check-network-acls.png
-
     ├── 11-7-verify-the-ami-and-instance-type.png
-
     ├── 11-8-verify-the-ec2-instance-type.png
-
     ├── 11-9-check-the-default-subnets-public-ip-setting.png
-
     └── 11-10-check-the-ec2-security-group-options.png
 ```
 
