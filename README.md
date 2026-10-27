@@ -29,22 +29,17 @@ elsewhere in the AWS account.
 -   [5. IAM setup](#5-iam-setup)
 -   [6. Configure and verify AWS CLI](#6-configure-and-verify-aws-cli)
 -   [7. Verify existing EC2 resources](#7-verify-existing-ec2-resources)
--   [8. Inspect the default VPC and
-    subnets](#8-inspect-the-default-vpc-and-subnets)
--   [9. Inspect routing and Internet
-    Gateway](#9-inspect-routing-and-internet-gateway)
+-   [8. Inspect the default VPC and subnets](#8-inspect-the-default-vpc-and-subnets)
+-   [9. Inspect routing and Internet Gateway](#9-inspect-routing-and-internet-gateway)
 -   [10. Inspect the network ACL](#10-inspect-the-network-acl)
--   [11. Check the AMI and instance
-    type](#11-check-the-ami-and-instance-type)
+-   [11. Check the AMI and instance type](#11-check-the-ami-and-instance-type)
 -   [12. Check public-IP behavior](#12-check-public-ip-behavior)
--   [13. Inspect the existing security
-    group](#13-inspect-the-existing-security-group)
+-   [13. Inspect the existing security group](#13-inspect-the-existing-security-group)
 -   [14. Verified findings](#14-verified-findings)
 -   [15. Pending work](#15-pending-work)
 -   [16. Security and cost notes](#16-security-and-cost-notes)
 -   [17. Troubleshooting notes](#17-troubleshooting-notes)
--   [18. Launch the EC2 instance and install
-    NGINX](#18-launch-the-ec2-instance-and-install-nginx)
+-   [18. Launch the EC2 instance and install NGINX](#18-launch-the-ec2-instance-and-install-nginx)
 -   [19. Verify the deployment](#19-verify-the-deployment)
 -   [20. Troubleshooting evidence](#20-troubleshooting-evidence)
 -   [21. Cleanup and cost control](#21-cleanup-and-cost-control)
@@ -74,29 +69,15 @@ and screenshots, and rehearse the live demo.
 By completing this project, we aim to learn how to:
 
 -   Configure AWS CLI with a named profile.
-
 -   Verify which IAM identity is being used.
-
 -   Use an IAM group and a discovery-only policy.
-
 -   Inspect EC2 resources without launching an instance.
-
--   Understand VPCs, subnets, route tables, Internet Gateways, network
-    ACLs, and security groups.
-
--   Select an appropriate Amazon Machine Image (AMI) and EC2 instance
-    type.
-
+-   Understand VPCs, subnets, route tables, Internet Gateways, network ACLs, and security groups.
+-   Select an appropriate Amazon Machine Image (AMI) and EC2 instance type.
 -   Launch an EC2 instance and install NGINX with user data.
-
--   Verify public HTTP access, SSH access, service health, and NGINX
-    logs.
-
--   Practise evidence-based troubleshooting and clean up billable
-    resources.
-
--   Record the process with reproducible commands, expected results,
-    screenshots, and troubleshooting notes.
+-   Verify public HTTP access, SSH access, service health, and NGINX logs.
+-   Practise evidence-based troubleshooting and clean up billable resources.
+-   Record the process with reproducible commands, expected results, screenshots, and troubleshooting notes.
 
 ## 3. Environment
 
@@ -220,20 +201,17 @@ The user `ec2-nginx-lab-user` was added to `EC2-NGINX-Lab-Group`.
 
 ![Create user group](screenshots/4-1-create-user-group-iam-global.png)
 
-![Create user group additional
-step](screenshots/4-2-create-user-group-iam-global.png)
+![Create user group additional step](screenshots/4-2-create-user-group-iam-global.png)
 
 ![Group created](screenshots/5-create-user-group-added.png)
 
 ![IAM user groups](screenshots/7-1-iam-user-groups.png)
 
-![Add users to the
-group](screenshots/7-2-ec2-nginx-lab-group-add-users.png)
+![Add users to the group](screenshots/7-2-ec2-nginx-lab-group-add-users.png)
 
 ![Select user for the group](screenshots/7-3-add-users-selected.png)
 
-![User added to the lab
-group](screenshots/7-4-ec2-nginx-lab-group-iam-global-user-added-in-group.png)
+![User added to the lab group](screenshots/7-4-ec2-nginx-lab-group-iam-global-user-added-in-group.png)
 
 ### 5.4 Create and attach the discovery policy
 
@@ -275,6 +253,7 @@ returned `UnauthorizedOperation`. The current intended action list is:
     }
   ]
 }
+
 ```
 
 > This is the policy content intended to reflect the permissions added
@@ -283,26 +262,21 @@ returned `UnauthorizedOperation`. The current intended action list is:
 
 ![Choose policy permissions](screenshots/8-1-choose-permissions.png)
 
-![Create policy using
-JSON](screenshots/8-2-create-policy-select-json.png)
+![Create policy using JSON](screenshots/8-2-create-policy-select-json.png)
 
 ![Replace policy JSON](screenshots/8-3-remove-existing-json.png)
 
-![Review the discovery policy
-JSON](screenshots/8-4-replace-json-and-next.png)
+![Review the discovery policy JSON](screenshots/8-4-replace-json-and-next.png)
 
-![Add route-table discovery
-permission](screenshots/8-5-ec2-describeroutetables-json-and-next.png)
+![Add route-table discovery permission](screenshots/8-5-ec2-describeroutetables-json-and-next.png)
 
 ![Policy updated](screenshots/8-6-policy-updated.png)
 
 ![Create IAM policy](screenshots/9-1-create-policy-iam.png)
 
-![Policy attached to
-group](screenshots/9-2-ec2-nginx-lab-group-iam-permissions-created.png)
+![Policy attached to group](screenshots/9-2-ec2-nginx-lab-group-iam-permissions-created.png)
 
-![Policy inherited by the lab user through the
-group](screenshots/9-3-policy-is-attached-to-your-new-user-through-the-group.png)
+![Policy inherited by the lab user through the group](screenshots/9-3-policy-is-attached-to-your-new-user-through-the-group.png)
 
 #### Policy explanation
 
@@ -340,6 +314,7 @@ prompted. Use the following non-secret configuration values:
 Default region name: us-west-2
 
 Default output format: json
+
 ```
 
 Do not put actual credential values into this README.
@@ -347,8 +322,7 @@ Do not put actual credential values into this README.
 The named profile keeps the lab's configuration separate from the
 default AWS CLI profile.
 
-![Configure AWS CLI and verify the
-profile](screenshots/10-5-configure-the-profile-and-then-run-verification.png)
+![Configure AWS CLI and verify the profile](screenshots/10-5-configure-the-profile-and-then-run-verification.png)
 
 ### 6.2 Verify the active AWS identity
 
@@ -357,6 +331,7 @@ Run:
 ``` bash
 
 aws sts get-caller-identity --profile ec2-nginx-lab
+
 ```
 
 The command succeeded and identified the caller as the lab IAM user. The
@@ -401,16 +376,13 @@ are credentials, not ordinary configuration data. Store them securely,
 do not commit them to Git, and never include their values in
 screenshots.
 
-![Create an access key for the lab
-user](screenshots/10-1-ec2-nginx-lab-user-create-access-key.png)
+![Create an access key for the lab user](screenshots/10-1-ec2-nginx-lab-user-create-access-key.png)
 
-![Choose CLI as the use
-case](screenshots/10-2-select-command-line-interface-cli.png)
+![Choose CLI as the use case](screenshots/10-2-select-command-line-interface-cli.png)
 
 ![Add an access-key tag](screenshots/10-3-create-access-key-tag.png)
 
-![Save the new key
-securely](screenshots/10-4-save-the-new-key-securely.png)
+![Save the new key securely](screenshots/10-4-save-the-new-key-securely.png)
 
 ![Lab IAM user](screenshots/10-6-ec2-nginx-lab-user-iam-global.png)
 
@@ -507,29 +479,18 @@ aws ec2 describe-subnets \\
 
 Four available default subnets were returned:
 
-| Availability Zone | Subnet ID | CIDR | Default subnet for AZ |
-  Auto-assign public IPv4 |
-
+| Availability Zone | Subnet ID | CIDR | Default subnet for AZ | Auto-assign public IPv4 |
 |---|---|---|---|---|
-
-| `us-west-2a` | `subnet-02ecdd68edfbf7326` | `172.31.32.0/20` | Yes
-  | Yes |
-
-| `us-west-2c` | `subnet-003413e14c2375f32` | `172.31.0.0/20` | Yes
-  | Yes |
-
-| `us-west-2d` | `subnet-0ce894c858eab9c2e` | `172.31.48.0/20` | Yes
-  | Yes |
-
-| `us-west-2b` | `subnet-006fde08c5f4e902c` | `172.31.16.0/20` | Yes
-  | Yes |
+| `us-west-2a` | `subnet-02ecdd68edfbf7326` | `172.31.32.0/20` | Yes | Yes |
+| `us-west-2c` | `subnet-003413e14c2375f32` | `172.31.0.0/20` | Yes | Yes |
+| `us-west-2d` | `subnet-0ce894c858eab9c2e` | `172.31.48.0/20` | Yes | Yes |
+| `us-west-2b` | `subnet-006fde08c5f4e902c` | `172.31.16.0/20` | Yes | Yes |
 
 `MapPublicIpOnLaunch: True` means the subnet is configured to assign
 public IPv4 addresses to instances by default, unless overridden at
 launch. It does not, by itself, guarantee internet connectivity.
 
-![Default subnets available in
-Oregon](screenshots/10-8-default-subnets-available-in-oregon.png)
+![Default subnets available in Oregon](screenshots/10-8-default-subnets-available-in-oregon.png)
 
 **Result: Passed.** Four available default subnets were
 discovered. No subnet was created or modified.
@@ -541,15 +502,10 @@ For a closer inspection of the subnet in `us-west-2a`, run:
 ``` bash
 
 aws ec2 describe-subnets \\
-
   --region us-west-2 \\
-
   --profile ec2-nginx-lab \\
-
   --subnet-ids subnet-02ecdd68edfbf7326 \\
-
   --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,Cidr:CidrBlock,State:State,MapPublicIpOnLaunch:MapPublicIpOnLaunch,VpcId:VpcId}" \\
-
   --output table
 ```
 
@@ -567,8 +523,7 @@ Observed values:
 
 -   VPC: `vpc-0307ce67a0df86851`
 
-![Check the subnet's public-IP
-setting](screenshots/11-9-check-the-default-subnets-public-ip-setting.png)
+![Check the subnet's public-IP setting](screenshots/11-9-check-the-default-subnets-public-ip-setting.png)
 
 ------------------------------------------------------------------------
 
@@ -766,30 +721,18 @@ Five available Amazon Linux 2023 AMIs were returned. Examples from the
 observed output include:
 
 | AMI ID | Image name | Architecture |
-
 |---|---|---|
-
-| `ami-0e0fcdc77c6355731` |
-  `al2023-ami-2023.12.20261021.0-kernel-6.18-x86_64` | `x86_64` |
-
-| `ami-0ce59d8f4219233f7` |
-  `al2023-ami-2023.12.20261021.0-kernel-6.12-x86_64` | `x86_64` |
-
-| `ami-0f4093d08169978db` |
-  `al2023-ami-2023.12.20261026.1-kernel-6.12-x86_64` | `x86_64` |
-
-| `ami-074462d12abec759f` |
-  `al2023-ami-2023.12.20261026.1-kernel-6.1-x86_64` | `x86_64` |
-
-| `ami-0829b74b2a8c619b7` |
-  `al2023-ami-2023.12.20261026.1-kernel-6.18-x86_64` | `x86_64` |
+| `ami-0e0fcdc77c6355731` | `al2023-ami-2023.12.20261021.0-kernel-6.18-x86_64` | `x86_64` |
+| `ami-0ce59d8f4219233f7` | `al2023-ami-2023.12.20261021.0-kernel-6.12-x86_64` | `x86_64` |
+| `ami-0f4093d08169978db` | `al2023-ami-2023.12.20261026.1-kernel-6.12-x86_64` | `x86_64` |
+| `ami-074462d12abec759f` | `al2023-ami-2023.12.20261026.1-kernel-6.1-x86_64` | `x86_64` |
+| `ami-0829b74b2a8c619b7` | `al2023-ami-2023.12.20261026.1-kernel-6.18-x86_64` | `x86_64` |
 
 The image query returned available images owned by Amazon, with x86-64
 architecture and EBS root devices. AMI IDs are region-specific, and the
 latest available image may change over time.
 
-![Verify available
-AMIs](screenshots/11-7-verify-the-ami-and-instance-type.png)
+![Verify available AMIs](screenshots/11-7-verify-the-ami-and-instance-type.png)
 
 **Status:** AMI discovery succeeded. The final AMI selection
 should be confirmed again immediately before launching the instance.
@@ -816,19 +759,13 @@ aws ec2 describe-instance-types \\
 The output confirmed:
 
 | Property | Result |
-
 |---|---|
-
 | Instance type | `t3.micro` |
-
 | Architecture | `x86_64` |
-
 | vCPUs | `2` |
-
 | Memory | `1024 MiB` (1 GiB) |
 
-![Verify the EC2 instance
-type](screenshots/11-8-verify-the-ec2-instance-type.png)
+![Verify the EC2 instance type](screenshots/11-8-verify-the-ec2-instance-type.png)
 
 The `x86_64` instance architecture matches the discovered x86-64 AMI
 candidates.
@@ -890,19 +827,13 @@ aws ec2 describe-security-groups \\
 Only the default security group was returned:
 
 | Field | Value |
-
 |---|---|
-
 | Group ID | `sg-03b944b8175124bda` |
-
 | Group name | `default` |
-
 | Description | `default VPC security group` |
-
 | VPC | `vpc-0307ce67a0df86851` |
 
-![Inspect existing security
-groups](screenshots/11-1-inspect-existing-security-groups.png)
+![Inspect existing security groups](screenshots/11-1-inspect-existing-security-groups.png)
 
 ### 13.2 Inspect the default security group's inbound rules
 
@@ -927,8 +858,7 @@ The observed inbound rule allowed all protocols from resources
 associated with the **same security group**. The output did
 not show an IPv4 CIDR or IPv6 CIDR as an inbound source.
 
-![Inspect security-group inbound
-rules](screenshots/11-2-inspect-the-security-groups-inbound-rules.png)
+![Inspect security-group inbound rules](screenshots/11-2-inspect-the-security-groups-inbound-rules.png)
 
 This is not the same as allowing inbound access from the whole internet.
 The default security group is not the intended public-web access policy
@@ -956,8 +886,7 @@ aws ec2 describe-security-groups \\
 The observed outbound rule allowed all protocols to IPv4 destination
 `0.0.0.0/0`.
 
-![Inspect security-group outbound
-rules](screenshots/11-3-inspect-the-security-groups-outbound-rules.png)
+![Inspect security-group outbound rules](screenshots/11-3-inspect-the-security-groups-outbound-rules.png)
 
 **Important:** An outbound security-group rule is not proof
 of internet connectivity. Routing, gateway attachment, public
@@ -975,8 +904,7 @@ or replaced with an appropriate managed access method. HTTPS on TCP port
 
 Do not use a broad inbound rule such as all protocols from `0.0.0.0/0`.
 
-![Check the available security-group
-options](screenshots/11-10-check-the-ec2-security-group-options.png)
+![Check the available security-group options](screenshots/11-10-check-the-ec2-security-group-options.png)
 
 ------------------------------------------------------------------------
 
@@ -987,43 +915,21 @@ discovery phase. Some rows are historical snapshots from before the lab
 resources were created; they are not the current resource inventory.
 
 | Check | Result at discovery time |
-
 |---|---|
-
 | AWS CLI named profile | `ec2-nginx-lab` configured |
-
 | AWS identity | Verified with STS |
-
 | Region | `us-west-2` (Oregon) |
-
 | Existing EC2 instances | None returned before this lab's launch |
-
-| Existing EC2 key pairs | None returned before this lab's key pair was
-  created |
-
+| Existing EC2 key pairs | None returned before this lab's key pair was created |
 | Default VPC | `vpc-0307ce67a0df86851`, CIDR `172.31.0.0/16` |
-
-| Selected subnet | `subnet-02ecdd68edfbf7326`, `us-west-2a`,
-  `172.31.32.0/20` |
-
-| Main route table | `rtb-0bc5c0a06e2d2b2c0`, active default route to
-  the Internet Gateway |
-
+| Selected subnet | `subnet-02ecdd68edfbf7326`, `us-west-2a`, `172.31.32.0/20` |
+| Main route table | `rtb-0bc5c0a06e2d2b2c0`, active default route to the Internet Gateway |
 | Internet Gateway | `igw-0b25879d76a25f195`, attached to the VPC |
-
 | Network ACL | Default ACL; IPv4 allow entries in both directions |
-
-| AMI | Amazon Linux 2023 x86-64 image verified available before launch
-  |
-
+| AMI | Amazon Linux 2023 x86-64 image verified available before launch |
 | Instance type | `t3.micro`, x86-64, 2 vCPUs, 1 GiB memory |
-
-| Dedicated security group | Created for the lab; HTTP 80 public, SSH
-  22 restricted to the current public IP at setup time |
-
-| Launch permission check | IAM Policy Simulator showed `RunInstances`
-  allowed for subnet, image, instance, network-interface, and
-  security-group resource types |
+| Dedicated security group | Created for the lab; HTTP 80 public, SSH 22 restricted to the current public IP at setup time |
+| Launch permission check | IAM Policy Simulator showed `RunInstances` allowed for subnet, image, instance, network-interface, and security-group resource types |
 
 ## 15. Pending work
 
@@ -1152,11 +1058,9 @@ The instance was `i-0ea3759cfcb87faed`, launched in `us-west-2a` as a
 address was `35.92.109.120` at the time of testing. Public IPs are
 dynamic and may change after stop/start.
 
-![Launch the EC2
-instance](screenshots/18-10-launch-the-ec2-instance.png)
+![Launch the EC2 instance](screenshots/18-10-launch-the-ec2-instance.png)
 
-![Check the newly launched
-instance](screenshots/18-11-check-the-new-instance.png)
+![Check the newly launched instance](screenshots/18-11-check-the-new-instance.png)
 
 ## 19. Verify the deployment
 
@@ -1236,8 +1140,7 @@ Observed output: `active`.
 
 ![Test the NGINX website](screenshots/18-12-test-the-nginx-website.png)
 
-![Verify NGINX service
-health](screenshots/18-13-verify-nginx-service-health.png)
+![Verify NGINX service health](screenshots/18-13-verify-nginx-service-health.png)
 
 For more detail:
 
@@ -1291,15 +1194,10 @@ log](screenshots/19-3-check-the-nginx-access-log.png)
 Observed requests:
 
 | Request | Status | Interpretation |
-
 |---|---:|---|
-
 | `GET /` from curl | `200` | Homepage request succeeded |
-
 | `GET /` from Chrome | `200` | Browser loaded the homepage |
-
-| `GET /favicon.ico` from Chrome | `404` | Browser requested an icon
-  file that was not present |
+| `GET /favicon.ico` from Chrome | `404` | Browser requested an icon file that was not present |
 
 ### 20.3 Inspect the error log
 
@@ -1312,8 +1210,7 @@ ssh -i \~/.ssh/ec2-nginx-lab-key.pem \\
   'sudo tail -n 20 /var/log/nginx/error.log'
 ```
 
-![Verify the NGINX error
-log](screenshots/19-4-verify-the-nginx-error-log.png)
+![Verify the NGINX error log](screenshots/19-4-verify-the-nginx-error-log.png)
 
 The relevant error said that `/usr/share/nginx/html/favicon.ico` did not
 exist. This explains the favicon `404`; it does **not** mean
@@ -1326,8 +1223,7 @@ service/log/HTTP evidence, interpret the evidence, and only then change
 something. Do not restart a service blindly when the evidence shows it
 is healthy.
 
-![Verify HTTP response status and
-timing](screenshots/19-5-verify-the-servers-http-response-headers-and-status.png)
+![Verify HTTP response status and timing](screenshots/19-5-verify-the-servers-http-response-headers-and-status.png)
 
 ## 21. Cleanup and cost control
 
@@ -1417,32 +1313,16 @@ The following cleanup checks were completed in the AWS Oregon region
 (`us-west-2`):
 
 | Resource | Result |
-
 |---|---|
-
 | EC2 instance `i-0ea3759cfcb87faed` | Terminated |
-
 | Lab security group `ec2-nginx-lab-sg` | Deleted and verified |
-
 | EBS volumes | None listed in the console during the cleanup check |
-
-| Elastic IP addresses | None found in the console during the cleanup
-  check |
-
-| EBS snapshots owned by me | None listed in the console during the
-  cleanup check |
-
+| Elastic IP addresses | None found in the console during the cleanup check |
+| EBS snapshots owned by me | None listed in the console during the cleanup check |
 | NAT Gateways | None found in the console during the cleanup check |
-
-| Load Balancers | None found in the console during the cleanup check
-  |
-
-| Auto Scaling Groups | None found in the console during the cleanup
-  check |
-
-| Default VPC, subnets, route table, and Internet Gateway | Retained;
-  these were existing default networking resources |
-
+| Load Balancers | None found in the console during the cleanup check |
+| Auto Scaling Groups | None found in the console during the cleanup check |
+| Default VPC, subnets, route table, and Internet Gateway | Retained; these were existing default networking resources |
 | Lab IAM user, group, and policies | Retained |
 
 The IAM user used for this lab did not have permission to describe
