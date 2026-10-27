@@ -1,8 +1,8 @@
 # AWS EC2 + NGINX Web Application Deployment
 
-A beginner-friendly, step-by-step AWS lab that prepares an EC2 environment for a basic NGINX web server. The project is being documented as the work progresses, with commands, observed results, screenshots, and verification notes.
+A beginner-friendly, step-by-step AWS lab that provisions an EC2 instance, installs NGINX with EC2 user data, serves a custom HTML page, and verifies the deployment and service logs. The README records the discovery phase, deployment commands, observed results, troubleshooting evidence, screenshots, and cleanup guidance.
 
-> **Current status:** AWS CLI access and read-only environment discovery are in progress/completed for the checks listed below. **No EC2 instance has been launched, NGINX has not been installed, and no web application has been deployed.**
+> **Current status (27 October 2026):** The EC2 + NGINX deployment is successful. Instance `i-0ea3759cfcb87faed` was verified as running; the homepage returned HTTP `200`, SSH access succeeded, and `systemctl` reported NGINX as `active`. The instance may still be running and incurring charges; verify its current state before using this README later.
 
 ## Contents
 
@@ -23,6 +23,11 @@ A beginner-friendly, step-by-step AWS lab that prepares an EC2 environment for a
 - [15. Pending work](#15-pending-work)
 - [16. Security and cost notes](#16-security-and-cost-notes)
 - [17. Troubleshooting notes](#17-troubleshooting-notes)
+- [18. Launch the EC2 instance and install NGINX](#18-launch-the-ec2-instance-and-install-nginx)
+- [19. Verify the deployment](#19-verify-the-deployment)
+- [20. Troubleshooting evidence](#20-troubleshooting-evidence)
+- [21. Cleanup and cost control](#21-cleanup-and-cost-control)
+- [22. Current project status](#22-current-project-status)
 
 ---
 
@@ -32,7 +37,7 @@ This project demonstrates how to prepare an AWS environment for deploying a basi
 
 The workflow deliberately begins with **read-only discovery**. Before creating resources, we verify the AWS identity, permissions, VPC, subnets, routes, Internet Gateway, network ACL, AMI options, instance-type specifications, and existing security groups.
 
-The later deployment phase will cover EC2 provisioning, secure access, NGINX installation, website verification, troubleshooting, and cleanup.
+The deployment phase is now complete for the basic website. The remaining project work is to finish README/screenshot organization, rehearse the live demo, and clean up AWS resources when practice is complete.
 
 ## 2. Objectives
 
@@ -44,7 +49,9 @@ By completing this project, we aim to learn how to:
 - Inspect EC2 resources without launching an instance.
 - Understand VPCs, subnets, route tables, Internet Gateways, network ACLs, and security groups.
 - Select an appropriate Amazon Machine Image (AMI) and EC2 instance type.
-- Deploy and verify NGINX in a later stage.
+- Launch an EC2 instance and install NGINX with user data.
+- Verify public HTTP access, SSH access, service health, and NGINX logs.
+- Practise evidence-based troubleshooting and clean up billable resources.
 - Record the process with reproducible commands, expected results, screenshots, and troubleshooting notes.
 
 ## 3. Environment
@@ -60,9 +67,13 @@ By completing this project, we aim to learn how to:
 | IAM group | `EC2-NGINX-Lab-Group` |
 | Inline IAM policy | `EC2-NGINX-Lab-Discovery` |
 | VPC | Default VPC |
-| EC2 instance | **Not launched** |
-| NGINX | **Not installed** |
-| Web application | **Not deployed** |
+| EC2 instance | `i-0ea3759cfcb87faed` (last observed running) |
+| Instance type | `t3.micro` |
+| AMI | `ami-0f4093d08169978db` (Amazon Linux 2023 x86-64) |
+| Subnet / AZ | `subnet-02ecdd68edfbf7326` / `us-west-2a` |
+| Security group | `ec2-nginx-lab-sg` (`sg-01a2155926d1b3e19`) |
+| NGINX | Installed; service verified active |
+| Website | HTTP `200 OK` verified; see note below about dynamic public IPs |
 
 **Credential safety:** Never commit access keys, secret access keys, session tokens, private keys, or unredacted credential screenshots. Enter credentials only into the appropriate local credential configuration flow. If a credential is accidentally exposed, rotate or revoke it promptly.
 
@@ -695,61 +706,44 @@ Do not use a broad inbound rule such as all protocols from `0.0.0.0/0`.
 
 ---
 
-## 14. Verified findings
+## 14. Verified findings (pre-deployment discovery)
 
-| Check | Result |
+The following table records what was found during the initial read-only discovery phase. Some rows are historical snapshots from before the lab resources were created; they are not the current resource inventory.
+
+| Check | Result at discovery time |
 |---|---|
 | AWS CLI named profile | `ec2-nginx-lab` configured |
 | AWS identity | Verified with STS |
-| Region | `us-west-2` |
-| Existing EC2 instances | None returned |
-| Existing EC2 key pairs | None returned |
-| Default VPC | Available |
-| VPC ID | `vpc-0307ce67a0df86851` |
-| VPC CIDR | `172.31.0.0/16` |
-| Default subnets | Four available across four Availability Zones |
-| Main route table | `rtb-0bc5c0a06e2d2b2c0` |
-| Default IPv4 route | Active route to `igw-0b25879d76a25f195` |
-| Internet Gateway | Attached to the VPC, state `available` |
-| Network ACL | Default ACL; allow-all IPv4 entries in both directions |
-| AMI discovery | Amazon Linux 2023 x86-64 candidates found |
-| Instance type specs | `t3.micro`, x86-64, 2 vCPUs, 1 GiB |
-| Public-IP default | Enabled on the inspected subnet |
-| Existing security groups | Only default security group returned |
-| EC2 instance launched | **No** |
-| NGINX installed | **No** |
-| Web application deployed | **No** |
+| Region | `us-west-2` (Oregon) |
+| Existing EC2 instances | None returned before this lab's launch |
+| Existing EC2 key pairs | None returned before this lab's key pair was created |
+| Default VPC | `vpc-0307ce67a0df86851`, CIDR `172.31.0.0/16` |
+| Selected subnet | `subnet-02ecdd68edfbf7326`, `us-west-2a`, `172.31.32.0/20` |
+| Main route table | `rtb-0bc5c0a06e2d2b2c0`, active default route to the Internet Gateway |
+| Internet Gateway | `igw-0b25879d76a25f195`, attached to the VPC |
+| Network ACL | Default ACL; IPv4 allow entries in both directions |
+| AMI | Amazon Linux 2023 x86-64 image verified available before launch |
+| Instance type | `t3.micro`, x86-64, 2 vCPUs, 1 GiB memory |
+| Dedicated security group | Created for the lab; HTTP 80 public, SSH 22 restricted to the current public IP at setup time |
+| Launch permission check | IAM Policy Simulator showed `RunInstances` allowed for subnet, image, instance, network-interface, and security-group resource types |
 
 ## 15. Pending work
 
-The next steps are still pending. Continue one step at a time and verify each prerequisite before creating resources.
-
-- [ ] Confirm the saved discovery policy contains all the required `Describe*` actions.
-- [ ] Confirm launch permissions with an appropriately authorized identity.
-- [ ] Decide on secure SSH/management access.
-- [ ] Decide whether to use a dedicated security group and finalize inbound rules.
-- [ ] Reconfirm the selected AMI immediately before launch.
-- [ ] Review instance quota, Availability Zone capacity, and current AWS pricing.
-- [ ] Review storage settings and expected charges.
-- [ ] Launch the EC2 instance only after explicit readiness review.
-- [ ] Verify instance state, public IP, and access.
-- [ ] Install NGINX.
-- [ ] Deploy or configure a basic web page.
-- [ ] Verify the website from a browser and with command-line checks.
-- [ ] Record troubleshooting steps and evidence.
-- [ ] Clean up resources at the end of the lab.
+- [ ] Organize and verify all screenshots referenced by this README are present in `screenshots/` and commit them to GitHub.
+- [ ] Rehearse the 60-minute live demo from a clean checklist and explain each command in your own words.
+- [ ] Decide whether to add a favicon (the missing favicon is cosmetic; the homepage works).
+- [ ] Verify and clean up the lab resources after practice. Confirm both the first instance (`i-078e5c155e23ee9ba`) and replacement instance (`i-0ea3759cfcb87faed`) are terminated when the lab is finished.
+- [ ] Update this README if the public IP, instance ID, screenshots, or resource configuration changes.
 
 ## 16. Security and cost notes
 
-- Never commit AWS credentials or private SSH keys.
-- Use least-privilege IAM permissions.
-- The discovery policy is not a deployment policy.
-- Avoid inbound SSH access from `0.0.0.0/0`.
-- Permit only required inbound web traffic.
-- Review charges for EC2 runtime, EBS storage, public IPv4 addresses, data transfer, and any additional resources.
-- Do not assume that `t3.micro` is free; verify current account eligibility and pricing.
-- Before terminating resources, preserve any evidence or files needed for the project.
-- When finished, verify that billable resources have been stopped or deleted as intended.
+- Never commit AWS access keys, secret access keys, session tokens, or private SSH keys.
+- The SSH inbound rule was restricted to the public IP observed during setup. If your IP changes, update the rule carefully before SSH; do not open port 22 to `0.0.0.0/0`.
+- HTTP port 80 is intentionally open to the internet for this demo. Do not send sensitive data over plain HTTP.
+- The instance uses an 8 GiB `gp3` EBS root volume with `DeleteOnTermination=true`.
+- EC2 compute, EBS storage, public IPv4, data transfer, and other resources may incur charges. Stopping an instance generally stops compute charges, but retained storage and public IPv4 may still be billed. Confirm current pricing and account eligibility.
+- The first instance (`i-078e5c155e23ee9ba`) was replaced during the session. Verify its state and ensure it is terminated to avoid unintended charges.
+- When the lab is complete, preserve screenshots and notes, then terminate the instance if you no longer need it. Verify the result in the AWS console or with `describe-instances`.
 
 ## 17. Troubleshooting notes
 
@@ -773,12 +767,287 @@ An empty result can mean no matching resources were returned for the identity an
 
 Check public-IP assignment, the route table, gateway attachment, security groups, NACLs, host firewall, and whether the service is listening on the intended port.
 
----
 
-## Current project status
+## 18. Launch the EC2 instance and install NGINX
 
-**AWS access and read-only network discovery have progressed successfully.** The default VPC, subnets, main route table, Internet Gateway attachment, default network ACL, Amazon Linux 2023 AMI candidates, `t3.micro` specifications, subnet public-IP setting, and default security group have been inspected.
+The launch was performed from WSL Ubuntu using the named profile. The command created one Amazon Linux 2023 instance, attached the dedicated security group and existing key pair, requested a public IPv4 address, configured an 8 GiB `gp3` root volume, and used EC2 user data to install and start NGINX.
 
-The environment is **not yet ready for an instance launch** until the remaining IAM, secure access, security-group, quota, and cost checks are completed.
+> **Reproducibility note:** AMI IDs and public IP addresses can change. Re-check the AMI and your current SSH source IP before re-running this lab. Do not run the launch command twice unless you intentionally want another instance.
 
-**No EC2 instance or NGINX web application has been deployed.**
+```bash
+aws ec2 run-instances \
+  --image-id ami-0f4093d08169978db \
+  --instance-type t3.micro \
+  --count 1 \
+  --key-name ec2-nginx-lab-key \
+  --security-group-ids sg-01a2155926d1b3e19 \
+  --subnet-id subnet-02ecdd68edfbf7326 \
+  --associate-public-ip-address \
+  --block-device-mappings 'DeviceName=/dev/xvda,Ebs={VolumeSize=8,VolumeType=gp3,DeleteOnTermination=true}' \
+  --user-data '#!/bin/bash
+  dnf install -y nginx
+  systemctl enable --now nginx
+  echo "<h1>My AWS EC2 Nginx Lab</h1><p>Nginx is running successfully!</p>" > /usr/share/nginx/html/index.html' \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query 'Instances[0].{InstanceId:InstanceId,State:State.Name,Type:InstanceType,AZ:Placement.AvailabilityZone}' \
+  --output table
+```
+
+The replacement instance was `i-0ea3759cfcb87faed`, launched in `us-west-2a` as a `t3.micro`. Its observed private IP was `172.31.46.91` and public IPv4 address was `35.92.109.120` at the time of testing. Public IPs are dynamic and may change after stop/start.
+
+![Launch the EC2 instance](screenshots/18-10-launch-the-ec2-instance.png)
+
+![Check the newly launched instance](screenshots/18-11-check-the-new-instance.png)
+
+## 19. Verify the deployment
+
+### 19.1 Check instance state and addresses
+
+```bash
+aws ec2 describe-instances \
+  --instance-ids i-0ea3759cfcb87faed \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query 'Reservations[0].Instances[0].{State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress}' \
+  --output table
+```
+
+Observed state: `running`. Observed public IP at test time: `35.92.109.120`.
+
+### 19.2 Test the homepage over HTTP
+
+```bash
+curl -i --connect-timeout 5 http://35.92.109.120
+```
+
+Observed response included:
+
+```text
+HTTP/1.1 200 OK
+Server: nginx/1.30.6
+Content-Type: text/html
+
+<h1>My AWS EC2 Nginx Lab</h1><p>Nginx is running successfully!</p>
+```
+
+A second concise check was also successful:
+
+```bash
+curl -sS -o /dev/null -w 'HTTP status: %{http_code}\nResponse time: %{time_total}s\n' http://35.92.109.120/
+```
+
+Observed output:
+
+```text
+HTTP status: 200
+Response time: 0.511863s
+```
+
+This is one request's response time, not a long-term performance benchmark.
+
+### 19.3 Verify NGINX service health over SSH
+
+```bash
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
+  -o StrictHostKeyChecking=accept-new \
+  ec2-user@35.92.109.120 \
+  'sudo systemctl is-active nginx'
+```
+
+Observed output: `active`.
+
+![Test the NGINX website](screenshots/18-12-test-the-nginx-website.png)
+
+![Verify NGINX service health](screenshots/18-13-verify-nginx-service-health.png)
+
+For more detail:
+
+```bash
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
+  ec2-user@35.92.109.120 \
+  'sudo systemctl status nginx --no-pager'
+```
+
+Observed evidence included `Active: active (running)`, `enabled`, and a successful NGINX configuration test (`nginx -t`).
+
+## 20. Troubleshooting evidence
+
+### 20.1 Inspect the system journal
+
+```bash
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
+  ec2-user@35.92.109.120 \
+  'sudo journalctl -u nginx -n 20 --no-pager'
+```
+
+The observed entries showed normal service startup, a successful configuration test, and `Started nginx.service`. No startup error was present in the output shared during the lab.
+
+![Check NGINX health](screenshots/19-1-check-nginx-health.png)
+
+![Inspect NGINX logs](screenshots/19-2-inspect-nginx-logs.png)
+
+### 20.2 Inspect access logs
+
+```bash
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
+  ec2-user@35.92.109.120 \
+  'sudo tail -n 10 /var/log/nginx/access.log'
+```
+
+![Check the NGINX access log](screenshots/19-3-check-the-nginx-access-log.png)
+
+Observed requests:
+
+| Request | Status | Interpretation |
+|---|---:|---|
+| `GET /` from curl | `200` | Homepage request succeeded |
+| `GET /` from Chrome | `200` | Browser loaded the homepage |
+| `GET /favicon.ico` from Chrome | `404` | Browser requested an icon file that was not present |
+
+### 20.3 Inspect the error log
+
+```bash
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
+  ec2-user@35.92.109.120 \
+  'sudo tail -n 20 /var/log/nginx/error.log'
+```
+
+![Verify the NGINX error log](screenshots/19-4-verify-the-nginx-error-log.png)
+
+The relevant error said that `/usr/share/nginx/html/favicon.ico` did not exist. This explains the favicon `404`; it does **not** mean the homepage deployment failed. The main `/` endpoint continued returning `200 OK`. The other log entries were `[notice]` messages about normal NGINX startup.
+
+**Troubleshooting approach:** observe the symptom, collect service/log/HTTP evidence, interpret the evidence, and only then change something. Do not restart a service blindly when the evidence shows it is healthy.
+
+![Verify HTTP response status and timing](screenshots/19-5-verify-the-servers-http-response-headers-and-status.png)
+
+## 21. Cleanup and cost control
+
+Before cleanup, preserve screenshots and notes needed for your demo. Check both instance IDs because an initial instance was replaced during practice.
+
+Check the instances:
+
+```bash
+aws ec2 describe-instances \
+  --instance-ids i-078e5c155e23ee9ba i-0ea3759cfcb87faed \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,PublicIP:PublicIpAddress}' \
+  --output table
+```
+
+If you need the environment again soon, you can stop the replacement instance:
+
+```bash
+aws ec2 stop-instances \
+  --instance-ids i-0ea3759cfcb87faed \
+  --region us-west-2 \
+  --profile ec2-nginx-lab
+```
+
+If the lab is finished and the instance is no longer needed, terminate it instead:
+
+```bash
+aws ec2 terminate-instances \
+  --instance-ids i-0ea3759cfcb87faed \
+  --region us-west-2 \
+  --profile ec2-nginx-lab
+```
+
+Do not execute both cleanup options as a routine sequence. Choose stop or terminate according to whether you need the instance again. After termination, verify the final state. The root EBS volume was configured with `DeleteOnTermination=true`, but check for any other resources you created (such as the key pair and security group) before deciding whether to delete them. Terminating an instance does not automatically delete the standalone EC2 key pair or security group. Do not delete shared resources that another workload may use.
+
+## 22. Current Project Status
+
+### Deployment Verification
+
+At the last verification, EC2 instance `i-0ea3759cfcb87faed` was running, the NGINX service was active, and the public homepage returned **HTTP 200 OK**. SSH access was successful, and the logs confirmed that NGINX started successfully.
+
+A request for `/favicon.ico` returned `404 Not Found` because the favicon file was missing. This was a minor issue and did not affect the homepage.
+
+> **Note:** The instance state and public IP address may change. Recheck both before repeating the demo.
+
+## Cleanup
+
+### Cleanup: Stop or Terminate the EC2 Instance
+
+When you finish practising, clean up the resources to avoid unnecessary AWS charges.
+
+**Step 1: Verify the instance**
+
+Run the following command from your terminal:
+
+```bash
+aws ec2 describe-instances \
+  --instance-ids i-0ea3759cfcb87faed \
+  --profile ec2-nginx-lab \
+  --region us-west-2 \
+  --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress}' \
+  --output table
+```
+
+If the instance ID is no longer valid, check the EC2 console for the correct instance ID before proceeding.
+
+**Step 2: Choose the appropriate cleanup option**
+
+**Option A — Stop the instance**
+
+Use this if you want to retain the instance for future practice.
+
+```bash
+aws ec2 stop-instances \
+  --instance-ids i-0ea3759cfcb87faed \
+  --profile ec2-nginx-lab \
+  --region us-west-2
+```
+
+Verify the state:
+
+```bash
+aws ec2 describe-instances \
+  --instance-ids i-0ea3759cfcb87faed \
+  --profile ec2-nginx-lab \
+  --region us-west-2 \
+  --query 'Reservations[].Instances[].State.Name' \
+  --output text
+```
+
+Expected state: `stopped`
+
+**Option B — Terminate the instance**
+
+Use this if you have finished the lab and no longer need the instance.
+
+```bash
+aws ec2 terminate-instances \
+  --instance-ids i-0ea3759cfcb87faed \
+  --profile ec2-nginx-lab \
+  --region us-west-2
+```
+
+Verify termination:
+
+```bash
+aws ec2 describe-instances \
+  --instance-ids i-0ea3759cfcb87faed \
+  --profile ec2-nginx-lab \
+  --region us-west-2 \
+  --query 'Reservations[].Instances[].State.Name' \
+  --output text
+```
+
+Expected state: `shutting-down`, followed by `terminated`.
+
+**Step 3: Check for other billable resources**
+
+- Check whether any earlier EC2 instance created during this lab is still running.
+- Review the EC2 console for unattached EBS volumes and other resources you no longer need.
+- Review Elastic IP addresses, if any were allocated.
+- Retain the SSH key pair and security group if you plan to reuse them. Delete them only when they are no longer required and are not in use.
+
+**Cost note:** Stopping an instance generally stops its compute charges, but storage charges for retained EBS volumes can continue. Terminating an instance does not necessarily remove every resource created during the lab. Review your AWS resources and billing before considering cleanup complete.
+
+### Final Status
+
+The EC2 and NGINX deployment was successfully tested at the last verification. Recheck the instance state and public IP address before running the lab again.
+
+**Project status:** The basic EC2 and NGINX deployment was successfully tested. Resource cleanup remain to be completed.
