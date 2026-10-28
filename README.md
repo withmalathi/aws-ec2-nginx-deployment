@@ -2,7 +2,11 @@
 
 A beginner-friendly, step-by-step AWS lab that provisions an EC2 instance, installs NGINX with EC2 user data, serves a custom HTML page, and verifies the deployment and service logs. The README records the discovery phase, deployment commands, observed results, troubleshooting evidence, screenshots, and cleanup guidance.
 
-> **Current status:** The EC2 + NGINX deployment was successfully verified: the homepage returned HTTP `200`, SSH access succeeded, and NGINX was `active`. The replacement instance `i-0ea3759cfcb87faed` was subsequently terminated. The lab security group was deleted. The cleanup results below describe the resources checked in `us-west-2`; they are not a guarantee that no charges exist elsewhere in the AWS account.
+> **Current status:** The EC2 + NGINX deployment was successfully verified: 
+- The homepage returned HTTP `200`, SSH access succeeded, and NGINX was `active`. 
+The instance `i-0ea3759cfcb87faed` was subsequently terminated. 
+The lab security group was deleted. 
+The cleanup results below describe the resources checked in `us-west-2`; they are not a guarantee that no charges exist elsewhere in the AWS account.
 
 ## Contents
 
@@ -781,7 +785,7 @@ The deployment below records what was done during the successful test. Some reso
 - HTTP port 80 is intentionally open to the internet for this demo. Do not send sensitive data over plain HTTP.
 - The instance uses an 8 GiB `gp3` EBS root volume with `DeleteOnTermination=true`.
 - EC2 compute, EBS storage, public IPv4, data transfer, and other resources may incur charges. Stopping an instance generally stops compute charges, but retained storage and public IPv4 may still be billed. Confirm current pricing and account eligibility.
-- The replacement instance `i-0ea3759cfcb87faed` was terminated during cleanup, and the dedicated security group `sg-01a2155926d1b3e19` was deleted. These identifiers are historical evidence, not reusable live resources.
+- The instance `i-0ea3759cfcb87faed` was terminated during cleanup, and the dedicated security group `sg-01a2155926d1b3e19` was deleted. These identifiers are historical evidence, not reusable live resources.
 - The default VPC and its networking resources, lab IAM user/group/policies, EC2 key pair `ec2-nginx-lab-key`, and local private key were retained. Do not delete them as routine lab cleanup.
 - Cleanup findings are limited to the resource types and region explicitly checked; review AWS Billing and Cost Explorer for account-wide cost visibility.
 
@@ -894,7 +898,7 @@ aws ec2 run-instances \
   --output table
 ```
 
-The historical replacement instance was `i-0ea3759cfcb87faed`, launched in `us-west-2a` as a `t3.micro`. Its observed private IP was `172.31.46.91` and public IPv4 address was `35.92.109.120` at the time of testing. Public IPs are dynamic and may change after stop/start. The security-group argument above is deliberately a placeholder: the historical group `sg-01a2155926d1b3e19` was deleted, so substitute the ID of a newly created dedicated lab security group before a future launch.
+The historical instance was `i-0ea3759cfcb87faed`, launched in `us-west-2a` as a `t3.micro`. Its observed private IP was `172.31.46.91` and public IPv4 address was `35.92.109.120` at the time of testing. Public IPs are dynamic and may change after stop/start. The security-group argument above is deliberately a placeholder: the historical group `sg-01a2155926d1b3e19` was deleted, so substitute the ID of a newly created dedicated lab security group before a future launch.
 
 ![Launch the EC2 instance](screenshots/18-10-launch-the-ec2-instance.png)
 
@@ -1043,7 +1047,7 @@ The root EBS volume used for the tested instance was configured with `DeleteOnTe
 
 The deployment was successfully tested **before cleanup**. These are historical results and do not mean an EC2 instance is currently running.
 
-- Replacement EC2 instance: `i-0ea3759cfcb87faed`; it was `running` during testing and was subsequently terminated.
+- EC2 instance: `i-0ea3759cfcb87faed`; it was `running` during testing and was subsequently terminated.
 - SSH access: successful.
 - NGINX service: `active (running)` during testing.
 - Homepage: returned **HTTP 200 OK**.
@@ -1080,7 +1084,7 @@ The following checks were completed for the AWS Oregon region (`us-west-2`). Res
 
 | Resource or setting | Verified result |
 |---|---|
-| Replacement EC2 instance `i-0ea3759cfcb87faed` | Terminated |
+| EC2 instance `i-0ea3759cfcb87faed` | Terminated |
 | Dedicated lab security group `sg-01a2155926d1b3e19` (`ec2-nginx-lab-sg`) | Deleted and deletion verified |
 | EBS volumes | None listed in the console during the cleanup check |
 | Elastic IP addresses | None found in the console check |
@@ -1100,4 +1104,4 @@ The following checks were completed for the AWS Oregon region (`us-west-2`). Res
 
 To repeat the lab, follow Sections 5–20 as a guide, but re-verify identity, permissions, AMI, subnet, quota, and public IP. The previous security group was deleted, so create a new dedicated group and update the launch command before running it. The retained key pair and IAM setup may be reused only after confirming they still exist and are appropriate. Use Section 21 as future cleanup guidance; it is not a record of additional cleanup actions already performed.
 
-**Final status:** The historical EC2 + NGINX deployment was verified successfully. The replacement instance was terminated and the dedicated security group was deleted. The default networking, IAM setup, key pair, and local private key were retained. Cleanup findings are regional and resource-specific, not an account-wide guarantee of zero charges.
+**Final status:** The historical EC2 + NGINX deployment was verified successfully. The instance was terminated and the dedicated security group was deleted. The default networking, IAM setup, key pair, and local private key were retained. Cleanup findings are regional and resource-specific, not an account-wide guarantee of zero charges.
