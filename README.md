@@ -266,6 +266,7 @@ The policy's action list was expanded as additional read-only checks returned `U
         "ec2:DescribeImages",
         "ec2:DescribeInstanceTypes",
         "ec2:DescribeInstances",
+        "ec2:DescribeInstanceTypeOfferings",
         "ec2:DescribeInternetGateways",
         "ec2:DescribeKeyPairs",
         "ec2:DescribeNetworkAcls",
