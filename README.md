@@ -3,10 +3,10 @@
 A beginner-friendly, step-by-step AWS lab that provisions an EC2 instance, installs NGINX with EC2 user data, serves a custom HTML page, and verifies the deployment and service logs. The README records the discovery phase, deployment commands, observed results, troubleshooting evidence, screenshots, and cleanup guidance.
 
 > **Current status:** The EC2 + NGINX deployment was successfully verified: 
-- The homepage returned HTTP `200`, SSH access succeeded, and NGINX was `active`. 
-The instance `i-0ea3759cfcb87faed` was subsequently terminated. 
-The lab security group was deleted. 
-The cleanup results below describe the resources checked in `us-west-2`; they are not a guarantee that no charges exist elsewhere in the AWS account.
+> - The homepage returned HTTP `200`, SSH access succeeded, and NGINX was `active`. 
+> - The instance `i-0ea3759cfcb87faed` was subsequently terminated. 
+> - The lab security group was deleted. 
+> - The cleanup results below describe the resources checked in `us-west-2`; they are not a guarantee that no charges exist elsewhere in the AWS account.
 
 ## Contents
 
