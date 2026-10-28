@@ -128,7 +128,70 @@ aws-ec2-nginx-deployment/
     ├── 11-7-verify-the-ami-and-instance-type.png
     ├── 11-8-verify-the-ec2-instance-type.png
     ├── 11-9-check-the-default-subnets-public-ip-setting.png
-    └── 11-10-check-the-ec2-security-group-options.png
+    ├── 11-10-check-the-ec2-security-group-options.png
+    ├── 11-11-check-the-ec2-key-pair-options-no-output.png
+    ├── 11-12-check-public-ip-for-secure-ssh-planning.png
+    ├── 11-13-check-your-ssh-access-prerequisites-no-output.png
+    ├── 11-14-create-the-lab-deployment-policy.png
+    ├── 11-15-create-the-lab-deployment-policy.png
+    ├── 11-16-created-successfully-the-lab-deployment-policy.png
+    ├── 12-1-verify-deployment-permissions-in-the-console.png
+    ├── 12-2-policy-simulator-iam.png
+    ├── 12-3-select-ec2-actions.png
+    ├── 12-4-policy-simulator-add-actions.png
+    ├── 12-5-actions-added-click-simulate.png
+    ├── 12-6-policy-simulator-passed.png
+    ├── 12-7-check-the-launch-prerequisites.png
+    ├── 13-1-amazon-elastic-compute-cloud-amazon-ec2-quotas-list-aws-service-quotas-verified.png
+    ├── 14-1-verify-the-planned-instance-type.png
+    ├── 14-2-check-the-key-pair-creation-permission.png
+    ├── 14-3-review-the-security-group-rules.png
+    ├── 15-1-check-whether-the-local-key-filename-already-exists.png
+    ├── 15-2-check-whether-the-aws-key-pair-name-already-exists.png
+    ├── 15-3-create-the-ssh-key-pair.png
+    ├── 15-4-secure-the-private-key.png
+    ├── 15-5-verify-the-key-file.png
+    ├── 15-6-verify-the-key-exists-in-aws.png
+    ├── 16-1-check-whether-the-security-group-already-exists-no-output.png
+    ├── 16-2-get-current-public-ip.png
+    ├── 16-3-create-the-dedicated-security-group.png
+    ├── 16-4-add-the-http-inbound-rule.png
+    ├── 17-1-check-your-current-public-ip.png
+    ├── 17-2-add-the-restricted-ssh-rule.png
+    ├── 17-3-verify-both-inbound-rules.png
+    ├── 17-4-verify-the-aws-identity-and-region.png
+    ├── 17-5-verify-the-latest-suitable-amazon-linux-ami.png
+    ├── 17-6-verify-the-public-subnet.png
+    ├── 17-7-verify-the-route-table.png
+    ├── 17-8-verify-the-key-pair.png
+    ├── 17-9-verify-the-security-group.png
+    ├── 18-1-verify-the-planned-ec2-instance-type.png
+    ├── 18-2-check-the-launch-permissions.png
+    ├── 18-3-verify-the-launch-permissions.png
+    ├── 18-4-final-permissions-check--no-instance-launch-yet-selected-amazon-linux-image-is-still-available.png
+    ├── 18-5-verify-the-current-ssh-access-ip.png
+    ├── 18-6-verify-the-ssh-rule.png
+    ├── 18-7-verify-the-ec2-launch-configuration.png
+    ├── 18-8-verify-the-security-group.png
+    ├── 18-9-verify-the-ec2-instance-type.png
+    ├── 18-10-launch-the-ec2-instance.png
+    ├── 18-11-check-the-new-instance.png
+    ├── 18-12-test-the-nginx-website.png
+    ├── 18-13-verify-nginx-service-health.png
+    ├── 19-1-check-nginx-health.png
+    ├── 19-2-inspect-nginx-logs.png
+    ├── 19-3-check-the-nginx-access-log.png
+    ├── 19-4-verify-the-nginx-error-log.png
+    ├── 19-5-verify-the-servers-http-response-headers-and-status.png
+    ├── 20-1-stop-terminate-the-ec2-instance.png
+    ├── 20-2-terminate-the-instance.png
+    ├── 20-3-terminated-the-instance.png
+    ├── 20-4-check-your-ec2-instances-first-before-deleting-network.png
+    ├── 20-5-check-whether-the-security-group-can-be-deleted.png
+    ├── 20-6-delete-security-groups-of-ec2-nginx-lab-sg.png
+    ├── 20-6-1-click-delete.png
+    ├── 20-6-2-successfully-deleted.png
+    └── 20-7-verify-the-security-group-was-deleted.png
 ```
 
 > The screenshot filenames above reflect the current local directory listing. If a file is renamed, update its reference in this README.
