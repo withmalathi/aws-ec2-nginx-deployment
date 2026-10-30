@@ -22,34 +22,29 @@ elsewhere in the AWS account.
 
 ## Contents
 
--   [1. Project overview](#1-project-overview)
--   [2. Objectives](#2-objectives)
--   [3. Environment](#3-environment)
--   [4. Repository layout](#4-repository-layout)
--   [5. IAM setup](#5-iam-setup)
--   [6. Configure and verify AWS CLI](#6-configure-and-verify-aws-cli)
--   [7. Verify existing EC2 resources](#7-verify-existing-ec2-resources)
--   [8. Inspect the default VPC and
-    subnets](#8-inspect-the-default-vpc-and-subnets)
--   [9. Inspect routing and Internet
-    Gateway](#9-inspect-routing-and-internet-gateway)
--   [10. Inspect the network ACL](#10-inspect-the-network-acl)
--   [11. Check the AMI and instance
-    type](#11-check-the-ami-and-instance-type)
--   [12. Check public-IP behavior](#12-check-public-ip-behavior)
--   [13. Inspect the existing security
-    group](#13-inspect-the-existing-security-group)
--   [14. Verified findings](#14-verified-findings)
--   [15. Pending work](#15-pending-work)
--   [16. Security and cost notes](#16-security-and-cost-notes)
--   [17. Troubleshooting notes](#17-troubleshooting-notes)
--   [18. Launch the EC2 instance and install
-    NGINX](#18-launch-the-ec2-instance-and-install-nginx)
--   [19. Verify the deployment](#19-verify-the-deployment)
--   [20. Troubleshooting evidence](#20-troubleshooting-evidence)
--   [21. Cleanup and cost control](#21-cleanup-and-cost-control)
--   [22. Current project status](#22-current-project-status)
-
+- [1. Project overview](#1-project-overview)
+- [2. Objectives](#2-objectives)
+- [3. Environment](#3-environment)
+- [4. Repository layout](#4-repository-layout)
+- [5. IAM setup](#5-iam-setup)
+- [6. Configure and verify AWS CLI](#6-configure-and-verify-aws-cli)
+- [7. Verify existing EC2 resources](#7-verify-existing-ec2-resources)
+- [8. Inspect the default VPC and subnets](#8-inspect-the-default-vpc-and-subnets)
+- [9. Inspect routing and Internet Gateway](#9-inspect-routing-and-internet-gateway)
+- [10. Inspect the network ACL](#10-inspect-the-network-acl)
+- [11. Check the AMI and instance type](#11-check-the-ami-and-instance-type)
+- [12. Check public-IP behavior](#12-check-public-ip-behavior)
+- [13. Inspect the existing security group](#13-inspect-the-existing-security-group)
+- [14. Verified findings](#14-verified-findings)
+- [15. Pending work](#15-pending-work)
+- [16. Security and cost notes](#16-security-and-cost-notes)
+- [17. Troubleshooting notes](#17-troubleshooting-notes)
+- [18. Launch the EC2 instance and install NGINX](#18-launch-the-ec2-instance-and-install-nginx)
+- [19. Verify the deployment](#19-verify-the-deployment)
+- [20. Troubleshooting evidence](#20-troubleshooting-evidence)
+- [21. Cleanup and cost control](#21-cleanup-and-cost-control)
+- [22. Current project status](#22-current-project-status)
+  
 ------------------------------------------------------------------------
 
 ## 1. Project overview
