@@ -235,7 +235,6 @@ The policy's action list was expanded as additional read-only checks
 returned `UnauthorizedOperation`. The current intended action list is:
 
 ``` json
-
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -260,7 +259,6 @@ returned `UnauthorizedOperation`. The current intended action list is:
     }
   ]
 }
-
 ```
 
 > This is the policy content intended to reflect the permissions added
@@ -548,17 +546,11 @@ setting](screenshots/11-9-check-the-default-subnets-public-ip-setting.png)
 Run:
 
 ``` bash
-
 aws ec2 describe-route-tables \\
-
   --region us-west-2 \\
-
   --profile ec2-nginx-lab \\
-
   --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" \\
-
   --query "RouteTables[].{RouteTableId:RouteTableId,Associations:Associations[].SubnetId,Routes:Routes[].{Destination:DestinationCidrBlock,Gateway:GatewayId,State:State}}" \\
-
   --output json
 ```
 
