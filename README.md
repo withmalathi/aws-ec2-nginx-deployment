@@ -86,51 +86,24 @@ By completing this project, we aim to learn how to:
 
 ## 3. Environment
 
-  -------------------------------------------------------------------------
-  Item                             Current value
-  -------------------------------- ----------------------------------------
-  Local terminal                   WSL Ubuntu
-
-  Project directory                `\~/projects/aws-ec2-nginx-deployment`
-
-  AWS CLI profile                  `ec2-nginx-lab`
-
-  AWS Region                       `us-west-2`
-
-  Region name                      US West (Oregon)
-
-  IAM user                         `ec2-nginx-lab-user`
-
-  IAM group                        `EC2-NGINX-Lab-Group`
-
-  Inline IAM policy                `EC2-NGINX-Lab-Discovery`
-
-  VPC                              Default VPC
-
-  EC2 instance                     `i-0ea3759cfcb87faed` (terminated after
-                                   successful testing)
-
-  Instance type                    `t3.micro`
-
-  AMI                              `ami-0f4093d08169978db` (Amazon Linux
-                                   2023 x86-64)
-
-  Subnet / AZ                      Historical deployment subnet:
-                                   `subnet-02ecdd68edfbf7326` /
-                                   `us-west-2a`
-
-  Lab security group               `ec2-nginx-lab-sg`
-                                   (`sg-01a2155926d1b3e19`; deleted after
-                                   testing)
-
-  NGINX                            Installed; service verified active
-                                   before instance termination
-
-  Website                          HTTP `200 OK` verified before cleanup;
-                                   see note below about dynamic public IPs
-                                   no longer available at the old instance
-                                   endpoint
-  -------------------------------------------------------------------------
+| Item               | Current value                                                                                                                   |
+|:-------------------|:--------------------------------------------------------------------------------------------------------------------------------|
+| Local terminal     | WSL Ubuntu                                                                                                                      |
+| Project directory  | `\~/projects/aws-ec2-nginx-deployment`                                                                                          |
+| AWS CLI profile    | `ec2-nginx-lab`                                                                                                                 |
+| AWS Region         | `us-west-2`                                                                                                                     |
+| Region name        | US West (Oregon)                                                                                                                |
+| IAM user           | `ec2-nginx-lab-user`                                                                                                            |
+| IAM group          | `EC2-NGINX-Lab-Group`                                                                                                           |
+| Inline IAM policy  | `EC2-NGINX-Lab-Discovery`                                                                                                       |
+| VPC                | Default VPC                                                                                                                     |
+| EC2 instance       | `i-0ea3759cfcb87faed` (terminated after successful testing)                                                                     |
+| Instance type      | `t3.micro`                                                                                                                      |
+| AMI                | `ami-0f4093d08169978db` (Amazon Linux 2023 x86-64)                                                                              |
+| Subnet / AZ        | Historical deployment subnet: `subnet-02ecdd68edfbf7326` / `us-west-2a`                                                         |
+| Lab security group | `ec2-nginx-lab-sg` (`sg-01a2155926d1b3e19`; deleted after testing)                                                              |
+| NGINX              | Installed; service verified active before instance termination                                                                  |
+| Website            | HTTP `200 OK` verified before cleanup; see note below about dynamic public IPs no longer available at the old instance endpoint |
 
 **Credential safety:** Never commit access keys, secret access keys,
 session tokens, private keys, or unredacted credential screenshots.
@@ -318,26 +291,14 @@ group](screenshots/9-3-policy-is-attached-to-your-new-user-through-the-group.png
 
 #### Policy explanation
 
-  ---------------------------------------------------------------------
-  Policy element                     Meaning
-  ---------------------------------- ----------------------------------
-  `Version`                          IAM policy language version
-
-  `Statement`                        Contains the permission statement
-
-  `Sid`                              A descriptive identifier for the
-                                     statement
-
-  `Effect: Allow`                    Allows the listed actions, subject
-                                     to other applicable policies and
-                                     restrictions
-
-  `Action`                           Lists the permitted EC2 discovery
-                                     operations
-
-  `Resource: "\*"`                   Uses all-resource scope for these
-                                     supported describe actions
-  ---------------------------------------------------------------------
+| Policy element   | Meaning                                                                          |
+|:-----------------|:---------------------------------------------------------------------------------|
+| `Version`        | IAM policy language version                                                      |
+| `Statement`      | Contains the permission statement                                                |
+| `Sid`            | A descriptive identifier for the statement                                       |
+| `Effect: Allow`  | Allows the listed actions, subject to other applicable policies and restrictions |
+| `Action`         | Lists the permitted EC2 discovery operations                                     |
+| `Resource: "\*"` | Uses all-resource scope for these supported describe actions                     |
 
 The policy is for discovery only. The permissions required to create or
 modify deployment resources must be planned separately and granted only
@@ -497,12 +458,12 @@ aws ec2 describe-vpcs \\
 
 The command returned this VPC:
 
-  Field         Observed value
-  ------------- -------------------------
-  VPC ID        `vpc-0307ce67a0df86851`
-  State         `available`
-  Default VPC   `True`
-  IPv4 CIDR     `172.31.0.0/16`
+| Field       | Observed value          |
+|:------------|:------------------------|
+| VPC ID      | `vpc-0307ce67a0df86851` |
+| State       | `available`             |
+| Default VPC | `True`                  |
+| IPv4 CIDR   | `172.31.0.0/16`         |
 
 The CIDR is the VPC's private IPv4 address range; it is not the public
 IP address of an EC2 instance.
@@ -529,19 +490,12 @@ aws ec2 describe-subnets \\
 
 Four available default subnets were returned:
 
-  ----------------------------------------------------------------------------------------
-  Availability   Subnet ID                    CIDR               Default     Auto-assign
-  Zone                                                           subnet for  public IPv4
-                                                                 AZ          
-  -------------- ---------------------------- ------------------ ----------- -------------
-  `us-west-2a`   `subnet-02ecdd68edfbf7326`   `172.31.32.0/20`   Yes         Yes
-
-  `us-west-2c`   `subnet-003413e14c2375f32`   `172.31.0.0/20`    Yes         Yes
-
-  `us-west-2d`   `subnet-0ce894c858eab9c2e`   `172.31.48.0/20`   Yes         Yes
-
-  `us-west-2b`   `subnet-006fde08c5f4e902c`   `172.31.16.0/20`   Yes         Yes
-  ----------------------------------------------------------------------------------------
+| Availability Zone | Subnet ID                  | CIDR             | Default subnet for AZ | Auto-assign public IPv4 |
+|:------------------|:---------------------------|:-----------------|:----------------------|:------------------------|
+| `us-west-2a`      | `subnet-02ecdd68edfbf7326` | `172.31.32.0/20` | Yes                   | Yes                     |
+| `us-west-2c`      | `subnet-003413e14c2375f32` | `172.31.0.0/20`  | Yes                   | Yes                     |
+| `us-west-2d`      | `subnet-0ce894c858eab9c2e` | `172.31.48.0/20` | Yes                   | Yes                     |
+| `us-west-2b`      | `subnet-006fde08c5f4e902c` | `172.31.16.0/20` | Yes                   | Yes                     |
 
 `MapPublicIpOnLaunch: True` means the subnet is configured to assign
 public IPv4 addresses to instances by default, unless overridden at
@@ -609,18 +563,10 @@ aws ec2 describe-route-tables \\
 
 The discovered route table was `rtb-0bc5c0a06e2d2b2c0`. Its routes were:
 
-  ---------------------------------------------------------------------------
-  Destination       Target                    State           Meaning
-  ----------------- ------------------------- --------------- ---------------
-  `172.31.0.0/16`   `local`                   `active`        Route for
-                                                              traffic within
-                                                              the VPC
-
-  `0.0.0.0/0`       `igw-0b25879d76a25f195`   `active`        Default IPv4
-                                                              route toward
-                                                              the Internet
-                                                              Gateway
-  ---------------------------------------------------------------------------
+| Destination     | Target                  | State    | Meaning                                        |
+|:----------------|:------------------------|:---------|:-----------------------------------------------|
+| `172.31.0.0/16` | `local`                 | `active` | Route for traffic within the VPC               |
+| `0.0.0.0/0`     | `igw-0b25879d76a25f195` | `active` | Default IPv4 route toward the Internet Gateway |
 
 The route table initially showed no explicit subnet associations.
 
@@ -787,19 +733,13 @@ aws ec2 describe-images \\
 Five available Amazon Linux 2023 AMIs were returned. Examples from the
 observed output include:
 
-  -----------------------------------------------------------------------------------------------
-  AMI ID                    Image name                                           Architecture
-  ------------------------- ---------------------------------------------------- ----------------
-  `ami-0e0fcdc77c6355731`   `al2023-ami-2023.12.20261021.0-kernel-6.18-x86_64`   `x86_64`
-
-  `ami-0ce59d8f4219233f7`   `al2023-ami-2023.12.20261021.0-kernel-6.12-x86_64`   `x86_64`
-
-  `ami-0f4093d08169978db`   `al2023-ami-2023.12.20261026.1-kernel-6.12-x86_64`   `x86_64`
-
-  `ami-074462d12abec759f`   `al2023-ami-2023.12.20261026.1-kernel-6.1-x86_64`    `x86_64`
-
-  `ami-0829b74b2a8c619b7`   `al2023-ami-2023.12.20261026.1-kernel-6.18-x86_64`   `x86_64`
-  -----------------------------------------------------------------------------------------------
+| AMI ID                  | Image name                                         | Architecture |
+|:------------------------|:---------------------------------------------------|:-------------|
+| `ami-0e0fcdc77c6355731` | `al2023-ami-2023.12.20261021.0-kernel-6.18-x86_64` | `x86_64`     |
+| `ami-0ce59d8f4219233f7` | `al2023-ami-2023.12.20261021.0-kernel-6.12-x86_64` | `x86_64`     |
+| `ami-0f4093d08169978db` | `al2023-ami-2023.12.20261026.1-kernel-6.12-x86_64` | `x86_64`     |
+| `ami-074462d12abec759f` | `al2023-ami-2023.12.20261026.1-kernel-6.1-x86_64`  | `x86_64`     |
+| `ami-0829b74b2a8c619b7` | `al2023-ami-2023.12.20261026.1-kernel-6.18-x86_64` | `x86_64`     |
 
 The image query returned available images owned by Amazon, with x86-64
 architecture and EBS root devices. AMI IDs are region-specific, and the
@@ -832,12 +772,12 @@ aws ec2 describe-instance-types \\
 
 The output confirmed:
 
-  Property        Result
-  --------------- --------------------
-  Instance type   `t3.micro`
-  Architecture    `x86_64`
-  vCPUs           `2`
-  Memory          `1024 MiB` (1 GiB)
+| Property      | Result             |
+|:--------------|:-------------------|
+| Instance type | `t3.micro`         |
+| Architecture  | `x86_64`           |
+| vCPUs         | `2`                |
+| Memory        | `1024 MiB` (1 GiB) |
 
 ![Verify the EC2 instance
 type](screenshots/11-8-verify-the-ec2-instance-type.png)
@@ -992,53 +932,22 @@ The following table records what was found during the initial read-only
 discovery phase. Some rows are historical snapshots from before the lab
 resources were created; they are not the current resource inventory.
 
-  ---------------------------------------------------------------------
-  Check                              Result at discovery time
-  ---------------------------------- ----------------------------------
-  AWS CLI named profile              `ec2-nginx-lab` configured
-
-  AWS identity                       Verified with STS
-
-  Region                             `us-west-2` (Oregon)
-
-  Existing EC2 instances             None returned before this lab's
-                                     launch
-
-  Existing EC2 key pairs             None returned before this lab's
-                                     key pair was created
-
-  Default VPC                        `vpc-0307ce67a0df86851`, CIDR
-                                     `172.31.0.0/16`
-
-  Selected subnet                    `subnet-02ecdd68edfbf7326`,
-                                     `us-west-2a`, `172.31.32.0/20`
-
-  Main route table                   `rtb-0bc5c0a06e2d2b2c0`, active
-                                     default route to the Internet
-                                     Gateway
-
-  Internet Gateway                   `igw-0b25879d76a25f195`, attached
-                                     to the VPC
-
-  Network ACL                        Default ACL; IPv4 allow entries in
-                                     both directions
-
-  AMI                                Amazon Linux 2023 x86-64 image
-                                     verified available before launch
-
-  Instance type                      `t3.micro`, x86-64, 2 vCPUs, 1 GiB
-                                     memory
-
-  Dedicated security group           Created for the lab; HTTP 80
-                                     public, SSH 22 restricted to the
-                                     current public IP at setup time
-
-  Launch permission check            IAM Policy Simulator showed
-                                     `RunInstances` allowed for subnet,
-                                     image, instance,
-                                     network-interface, and
-                                     security-group resource types
-  ---------------------------------------------------------------------
+| Check                    | Result at discovery time                                                                                                             |
+|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| AWS CLI named profile    | `ec2-nginx-lab` configured                                                                                                           |
+| AWS identity             | Verified with STS                                                                                                                    |
+| Region                   | `us-west-2` (Oregon)                                                                                                                 |
+| Existing EC2 instances   | None returned before this lab's launch                                                                                               |
+| Existing EC2 key pairs   | None returned before this lab's key pair was created                                                                                 |
+| Default VPC              | `vpc-0307ce67a0df86851`, CIDR `172.31.0.0/16`                                                                                        |
+| Selected subnet          | `subnet-02ecdd68edfbf7326`, `us-west-2a`, `172.31.32.0/20`                                                                           |
+| Main route table         | `rtb-0bc5c0a06e2d2b2c0`, active default route to the Internet Gateway                                                                |
+| Internet Gateway         | `igw-0b25879d76a25f195`, attached to the VPC                                                                                         |
+| Network ACL              | Default ACL; IPv4 allow entries in both directions                                                                                   |
+| AMI                      | Amazon Linux 2023 x86-64 image verified available before launch                                                                      |
+| Instance type            | `t3.micro`, x86-64, 2 vCPUs, 1 GiB memory                                                                                            |
+| Dedicated security group | Created for the lab; HTTP 80 public, SSH 22 restricted to the current public IP at setup time                                        |
+| Launch permission check  | IAM Policy Simulator showed `RunInstances` allowed for subnet, image, instance, network-interface, and security-group resource types |
 
 ## 15. Pending work
 
@@ -1262,19 +1171,11 @@ log](screenshots/19-3-check-the-nginx-access-log.png)
 
 Observed requests:
 
-  ------------------------------------------------------------------------
-  Request                                     Status Interpretation
-  --------------------- ---------------------------- ---------------------
-  `GET /` from curl                            `200` Homepage request
-                                                     succeeded
-
-  `GET /` from Chrome                          `200` Browser loaded the
-                                                     homepage
-
-  `GET /favicon.ico`                           `404` Browser requested an
-  from Chrome                                        icon file that was
-                                                     not present
-  ------------------------------------------------------------------------
+| Request                        | Status | Interpretation                                      |
+|:-------------------------------|-------:|:----------------------------------------------------|
+| `GET /` from curl              |  `200` | Homepage request succeeded                          |
+| `GET /` from Chrome            |  `200` | Browser loaded the homepage                         |
+| `GET /favicon.ico` from Chrome |  `404` | Browser requested an icon file that was not present |
 
 ### 20.3 Inspect the error log
 
@@ -1369,37 +1270,18 @@ reliable endpoint and must be checked afresh if the lab is repeated.
 The following cleanup checks were completed in the AWS Oregon region
 (`us-west-2`):
 
-  -----------------------------------------------------------------------
-  Resource                            Result
-  ----------------------------------- -----------------------------------
-  EC2 instance `i-0ea3759cfcb87faed`  Terminated
-
-  Lab security group                  Deleted and verified
-  `ec2-nginx-lab-sg`                  
-
-  EBS volumes                         None listed in the console during
-                                      the cleanup check
-
-  Elastic IP addresses                None found in the console during
-                                      the cleanup check
-
-  EBS snapshots owned by me           None listed in the console during
-                                      the cleanup check
-
-  NAT Gateways                        None found in the console during
-                                      the cleanup check
-
-  Load Balancers                      None found in the console during
-                                      the cleanup check
-
-  Auto Scaling Groups                 None found in the console during
-                                      the cleanup check
-
-  Default VPC, subnets, route table,  Retained; these were existing
-  and Internet Gateway                default networking resources
-
-  Lab IAM user, group, and policies   Retained
-  -----------------------------------------------------------------------
+| Resource                                                | Result                                                     |
+|:--------------------------------------------------------|:-----------------------------------------------------------|
+| EC2 instance `i-0ea3759cfcb87faed`                      | Terminated                                                 |
+| Lab security group `ec2-nginx-lab-sg`                   | Deleted and verified                                       |
+| EBS volumes                                             | None listed in the console during the cleanup check        |
+| Elastic IP addresses                                    | None found in the console during the cleanup check         |
+| EBS snapshots owned by me                               | None listed in the console during the cleanup check        |
+| NAT Gateways                                            | None found in the console during the cleanup check         |
+| Load Balancers                                          | None found in the console during the cleanup check         |
+| Auto Scaling Groups                                     | None found in the console during the cleanup check         |
+| Default VPC, subnets, route table, and Internet Gateway | Retained; these were existing default networking resources |
+| Lab IAM user, group, and policies                       | Retained                                                   |
 
 The IAM user used for this lab did not have permission to describe
 network interfaces or EBS volumes through the AWS CLI. Those resources
