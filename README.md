@@ -941,6 +941,8 @@ instance](screenshots/18-11-check-the-new-instance.png)
 
 ### 19.1 Check instance state and addresses
 
+# Check and Change your instance id `i-0ea3759cfcb87faed` below
+
 ``` bash
 aws ec2 describe-instances \
   --instance-ids i-0ea3759cfcb87faed \
@@ -950,6 +952,7 @@ aws ec2 describe-instances \
   --output table
 ```
 
+# Check and Change your Public IP
 Observed state: `running`. Observed public IP at test time:
 `35.92.109.120`.
 
