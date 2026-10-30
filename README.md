@@ -407,10 +407,10 @@ All commands in this section are read-only.
 
 ``` bash
 
-aws ec2 describe-instances \\
-  --region us-west-2 \\
-  --profile ec2-nginx-lab \\
-  --output table
+aws ec2 describe-instances \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --output table
 ```
 
 The command succeeded and returned an empty table---no instances were
@@ -423,10 +423,7 @@ existing instances were returned by this query.
 
 ``` bash
 
-aws ec2 describe-key-pairs \\
-  --region us-west-2 \\
-  --profile ec2-nginx-lab \\
-  --output table
+aws ec2 describe-key-pairs --region us-west-2 --profile ec2-nginx-lab --output table
 ```
 
 The command succeeded and returned an empty table---no EC2 key pairs
@@ -448,11 +445,7 @@ Run:
 
 ``` bash
 
-aws ec2 describe-vpcs \\
-  --region us-west-2 \\
-  --profile ec2-nginx-lab \\
-  --query "Vpcs[].{VpcId:VpcId,State:State,IsDefault:IsDefault,CidrBlock:CidrBlock}" \\
-  --output table
+aws ec2 describe-vpcs --region us-west-2 --profile ec2-nginx-lab --query "Vpcs[].{VpcId:VpcId,State:State,IsDefault:IsDefault,CidrBlock:CidrBlock}" --output table
 ```
 
 The command returned this VPC:
@@ -478,14 +471,11 @@ created or modified.
 Run:
 
 ``` bash
+aws ec2 describe-subnets --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,State:State,DefaultForAZ:DefaultForAz,PublicIP:MapPublicIpOnLaunch,CIDR:CidrBlock}" --output table
 
-aws ec2 describe-subnets \\
-  --region us-west-2 \\
-  --profile ec2-nginx-lab \\
-  --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" \\
-  --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,State:State,DefaultForAZ:DefaultForAz,PublicIP:MapPublicIpOnLaunch,CIDR:CidrBlock}" \\
-  --output table
 ```
+
+
 
 Four available default subnets were returned:
 
@@ -512,12 +502,7 @@ For a closer inspection of the subnet in `us-west-2a`, run:
 
 ``` bash
 
-aws ec2 describe-subnets \\
-  --region us-west-2 \\
-  --profile ec2-nginx-lab \\
-  --subnet-ids subnet-02ecdd68edfbf7326 \\
-  --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,Cidr:CidrBlock,State:State,MapPublicIpOnLaunch:MapPublicIpOnLaunch,VpcId:VpcId}" \\
-  --output table
+aws ec2 describe-subnets --region us-west-2 --profile ec2-nginx-lab --subnet-ids subnet-02ecdd68edfbf7326 --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,Cidr:CidrBlock,State:State,MapPublicIpOnLaunch:MapPublicIpOnLaunch,VpcId:VpcId}" --output table
 ```
 
 Observed values:
@@ -546,12 +531,7 @@ setting](screenshots/11-9-check-the-default-subnets-public-ip-setting.png)
 Run:
 
 ``` bash
-aws ec2 describe-route-tables \\
-  --region us-west-2 \\
-  --profile ec2-nginx-lab \\
-  --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" \\
-  --query "RouteTables[].{RouteTableId:RouteTableId,Associations:Associations[].SubnetId,Routes:Routes[].{Destination:DestinationCidrBlock,Gateway:GatewayId,State:State}}" \\
-  --output json
+aws ec2 describe-route-tables --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "RouteTables[].{RouteTableId:RouteTableId,Associations:Associations[].SubnetId,Routes:Routes[].{Destination:DestinationCidrBlock,Gateway:GatewayId,State:State}}" --output json
 ```
 
 The discovered route table was `rtb-0bc5c0a06e2d2b2c0`. Its routes were:
@@ -571,18 +551,8 @@ table](screenshots/11-4-inspect-the-vpc-route-table.png)
 Run:
 
 ``` bash
+aws ec2 describe-route-tables --region us-west-2 --profile ec2-nginx-lab --route-table-ids rtb-0bc5c0a06e2d2b2c0 --query "RouteTables[].{RouteTableId:RouteTableId,MainAssociations:Associations[?Main==\`true\`].Main,SubnetAssociations:Associations[?SubnetId!=null].SubnetId}" --output json
 
-aws ec2 describe-route-tables \\
-
-  --region us-west-2 \\
-
-  --profile ec2-nginx-lab \\
-
-  --route-table-ids rtb-0bc5c0a06e2d2b2c0 \\
-
-  --query "RouteTables[].{RouteTableId:RouteTableId,MainAssociations:Associations[?Main==\\\`true\\\`].{Main:Main,VpcId:RouteTableId},SubnetAssociations:Associations[?SubnetId!=null].SubnetId}" \\
-
-  --output json
 ```
 
 The result confirmed:
@@ -611,17 +581,7 @@ Run:
 
 ``` bash
 
-aws ec2 describe-internet-gateways \\
-
-  --region us-west-2 \\
-
-  --profile ec2-nginx-lab \\
-
-  --internet-gateway-ids igw-0b25879d76a25f195 \\
-
-  --query "InternetGateways[].{InternetGatewayId:InternetGatewayId,Attachments:Attachments[].{VpcId:VpcId,State:State}}" \\
-
-  --output json
+aws ec2 describe-internet-gateways --region us-west-2 --profile ec2-nginx-lab --internet-gateway-ids igw-0b25879d76a25f195 --query "InternetGateways[].{InternetGatewayId:InternetGatewayId,Attachments:Attachments[].{VpcId:VpcId,State:State}}" --output json
 ```
 
 The command confirmed that:
@@ -653,17 +613,7 @@ Run:
 
 ``` bash
 
-aws ec2 describe-network-acls \\
-
-  --region us-west-2 \\
-
-  --profile ec2-nginx-lab \\
-
-  --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" \\
-
-  --query "NetworkAcls[].{NetworkAclId:NetworkAclId,IsDefault:IsDefault,Associations:Associations[].SubnetId,Entries:Entries[].{RuleNumber:RuleNumber,Protocol:Protocol,RuleAction:RuleAction,Egress:Egress,CidrBlock:CidrBlock,PortRange:PortRange}}" \\
-
-  --output json
+aws ec2 describe-network-acls --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "NetworkAcls[].{NetworkAclId:NetworkAclId,IsDefault:IsDefault,Associations:Associations[].SubnetId,Entries:Entries[].{RuleNumber:RuleNumber,Protocol:Protocol,RuleAction:RuleAction,Egress:Egress,CidrBlock:CidrBlock,PortRange:PortRange}}" --output json
 ```
 
 The command returned:
@@ -699,28 +649,7 @@ traffic.
 Run:
 
 ``` bash
-
-aws ec2 describe-images \\
-
-  --region us-west-2 \\
-
-  --profile ec2-nginx-lab \\
-
-  --owners amazon \\
-
-  --filters \\
-
-    "Name=name,Values=al2023-ami-2023.\*-x86_64" \\
-
-    "Name=state,Values=available" \\
-
-    "Name=architecture,Values=x86_64" \\
-
-    "Name=root-device-type,Values=ebs" \\
-
-  --query "Images | sort_by(@, &CreationDate)[-5:].{ImageId:ImageId,Name:Name,CreationDate:CreationDate,Architecture:Architecture}" \\
-
-  --output json
+aws ec2 describe-images --region us-west-2 --profile ec2-nginx-lab --owners amazon --filters "Name=name,Values=al2023-ami-2023.*-x86_64" "Name=state,Values=available" "Name=architecture,Values=x86_64" "Name=root-device-type,Values=ebs" --query "Images | sort_by(@, &CreationDate)[-5:].[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate,Architecture:Architecture}" --output json
 ```
 
 Five available Amazon Linux 2023 AMIs were returned. Examples from the
@@ -750,17 +679,7 @@ Run:
 
 ``` bash
 
-aws ec2 describe-instance-types \\
-
-  --region us-west-2 \\
-
-  --profile ec2-nginx-lab \\
-
-  --instance-types t3.micro \\
-
-  --query "InstanceTypes[].{InstanceType:InstanceType,Architectures:ProcessorInfo.SupportedArchitectures,vCPUs:VCpuInfo.DefaultVCpus,MemoryMiB:MemoryInfo.SizeInMiB}" \\
-
-  --output table
+aws ec2 describe-instance-types --region us-west-2 --profile ec2-nginx-lab --instance-types t3.micro --query "InstanceTypes[].{InstanceType:InstanceType,Architectures:ProcessorInfo.SupportedArchitectures,vCPUs:VCpuInfo.DefaultVCpus,MemoryMiB:MemoryInfo.SizeInMiB}" --output table
 ```
 
 The output confirmed:
@@ -818,17 +737,7 @@ Run:
 
 ``` bash
 
-aws ec2 describe-security-groups \\
-
-  --region us-west-2 \\
-
-  --profile ec2-nginx-lab \\
-
-  --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" \\
-
-  --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,Description:Description,VpcId:VpcId}" \\
-
-  --output table
+aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,Description:Description,VpcId:VpcId}" --output table
 ```
 
 Only the default security group was returned:
@@ -849,17 +758,7 @@ Run:
 
 ``` bash
 
-aws ec2 describe-security-groups \\
-
-  --region us-west-2 \\
-
-  --profile ec2-nginx-lab \\
-
-  --group-ids sg-03b944b8175124bda \\
-
-  --query "SecurityGroups[].{GroupId:GroupId,Inbound:IpPermissions}" \\
-
-  --output json
+aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --group-ids sg-03b944b8175124bda --query "SecurityGroups[].{GroupId:GroupId,Inbound:IpPermissions}" --output json
 ```
 
 The observed inbound rule allowed all protocols from resources
@@ -879,17 +778,7 @@ Run:
 
 ``` bash
 
-aws ec2 describe-security-groups \\
-
-  --region us-west-2 \\
-
-  --profile ec2-nginx-lab \\
-
-  --group-ids sg-03b944b8175124bda \\
-
-  --query "SecurityGroups[].{GroupId:GroupId,Outbound:IpPermissionsEgress}" \\
-
-  --output json
+aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --group-ids sg-03b944b8175124bda --query "SecurityGroups[].{GroupId:GroupId,Outbound:IpPermissionsEgress}" --output json
 ```
 
 The observed outbound rule allowed all protocols to IPv4 destination
@@ -942,24 +831,7 @@ resources were created; they are not the current resource inventory.
 | Dedicated security group | Created for the lab; HTTP 80 public, SSH 22 restricted to the current public IP at setup time                                        |
 | Launch permission check  | IAM Policy Simulator showed `RunInstances` allowed for subnet, image, instance, network-interface, and security-group resource types |
 
-## 15. Pending work
-
--   [ ] Organize and verify all screenshots referenced by this README
-    are present in `screenshots/` and commit them to GitHub.
-
--   [ ] Rehearse the 60-minute live demo from a clean checklist and
-    explain each command in your own words.
-
--   [ ] Decide whether to add a favicon (the missing favicon is
-    cosmetic; the homepage works).
-
--   [x] Terminate the EC2 instance and verify the lab security group was
-    deleted.
-
--   [ ] Verify all screenshot references and commit the final README and
-    screenshots to GitHub.
-
-## 16. Security and cost notes
+## 15. Security and cost notes
 
 -   Never commit AWS access keys, secret access keys, session tokens, or
     private SSH keys.
@@ -983,7 +855,7 @@ resources were created; they are not the current resource inventory.
     terminate the instance if you no longer need it. Verify the result
     in the AWS console or with `describe-instances`.
 
-## 17. Troubleshooting notes
+## 16. Troubleshooting notes
 
 ### `UnauthorizedOperation`
 
@@ -1026,6 +898,13 @@ and start NGINX.
 > Re-check the AMI and your current SSH source IP before re-running this
 > lab. Do not run the launch command twice unless you intentionally want
 > another instance.
+
+### Find the currently existing Security Groups
+```bash
+aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}" --output table
+```
+
+# Replace your above sg-01a2155926d1b3e19 in below code
 
 ``` bash
 aws ec2 run-instances \
