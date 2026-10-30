@@ -742,12 +742,12 @@ aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --fi
 
 Only the default security group was returned:
 
-  Field         Value
-  ------------- ------------------------------
-  Group ID      `sg-03b944b8175124bda`
-  Group name    `default`
-  Description   `default VPC security group`
-  VPC           `vpc-0307ce67a0df86851`
+| Field | Value |
+|---|---|
+| Group ID | `sg-03b944b8175124bda` |
+| Group name | `default` |
+| Description | `default VPC security group` |
+| VPC | `vpc-0307ce67a0df86851` |
 
 ![Inspect existing security
 groups](screenshots/11-1-inspect-existing-security-groups.png)
