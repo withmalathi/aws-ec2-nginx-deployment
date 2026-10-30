@@ -7,17 +7,13 @@ discovery phase, deployment commands, observed results, troubleshooting
 evidence, screenshots, and cleanup guidance.
 
 >  The EC2 + NGINX deployment was successfully verified before cleanup.
-
-The homepage returned HTTP `200 OK`, SSH access succeeded, and the NGINX
+>  The homepage returned HTTP `200 OK`, SSH access succeeded, and the NGINX
 service was active.
-
-The instance `i-0ea3759cfcb87faed` was subsequently terminated, and the
+>  The instance `i-0ea3759cfcb87faed` was subsequently terminated, and the
 lab security group `ec2-nginx-lab-sg` was deleted.
-
-The cleanup checks documented below apply to the AWS Oregon region
+>  The cleanup checks documented below apply to the AWS Oregon region
 (`us-west-2`) and the specific resource types inspected.
-
-They do not guarantee that no billable resources or charges exist
+>  They do not guarantee that no billable resources or charges exist
 elsewhere in the AWS account.
 
 ## Contents
