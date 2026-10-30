@@ -937,6 +937,66 @@ instance](screenshots/18-10-launch-the-ec2-instance.png)
 ![Check the newly launched
 instance](screenshots/18-11-check-the-new-instance.png)
 
+
+### 18.1 Create and configure the dedicated Security Group
+
+A Security Group acts as a virtual firewall for an EC2 instance.
+
+For this public NGINX demonstration, we need two inbound rules:
+
+| Port | Protocol | Source | Purpose |
+|---|---|---|---|
+| 22 | TCP | My public IP `/32` | SSH administration |
+| 80 | TCP | `0.0.0.0/0` | Public HTTP website |
+
+**Step 1: Create the dedicated Security Group**
+
+Run:
+
+```bash
+aws ec2 create-security-group --group-name ec2-nginx-lab-sg --description "Security group for EC2 NGINX web application" --vpc-id vpc-0307ce67a0df86851 --region us-west-2 --profile ec2-nginx-lab
+```
+
+<img width="2125" height="122" alt="image" src="https://github.com/user-attachments/assets/572c8087-de8c-4317-a7e0-49b69ca581c0" />
+
+
+The output returns a `GroupId`. Copy this value for the next command.
+
+**Step 2: Find your current public IP**
+
+Run:
+
+```bash
+curl -4 https://checkip.amazonaws.com
+```
+
+Use the returned IPv4 address in the next command. Add `/32` to restrict SSH access to that address.
+
+**Step 3: Add both inbound rules together**
+
+Replace `<SECURITY_GROUP_ID>` with the GroupId from Step 1 and `<YOUR_PUBLIC_IP>` with the address from Step 2.
+
+```bash
+aws ec2 authorize-security-group-ingress --group-id <SECURITY_GROUP_ID> --ip-permissions '[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"IpRanges":[{"CidrIp":"<YOUR_PUBLIC_IP>/32","Description":"SSH access from my public IP"}]},{"IpProtocol":"tcp","FromPort":80,"ToPort":80,"IpRanges":[{"CidrIp":"0.0.0.0/0","Description":"Public HTTP access"}]}]' --region us-west-2 --profile ec2-nginx-lab
+```
+<img width="2007" height="632" alt="image" src="https://github.com/user-attachments/assets/30c1a068-b795-4f7a-a465-fcfb06a37d79" />
+
+
+
+**Step 4: Verify the inbound rules**
+
+```bash
+aws ec2 describe-security-groups --group-ids <SECURITY_GROUP_ID> --region us-west-2 --profile ec2-nginx-lab --query "SecurityGroups[0].IpPermissions" --output table
+```
+
+<img width="1482" height="666" alt="image" src="https://github.com/user-attachments/assets/f29bff48-9c60-4dfb-8882-66b400f7a330" />
+
+
+Confirm that TCP ports 22 and 80 are present with the intended sources.
+
+**Important:** Use the newly created Security Group ID in the EC2 launch command in Section 18. Do not use an old or deleted Security Group ID.
+
+
 ## 19. Verify the deployment
 
 ### 19.1 Check instance state and addresses
