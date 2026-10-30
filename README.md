@@ -238,31 +238,30 @@ modification, key-pair creation, or other deployment changes.
 The policy's action list was expanded as additional read-only checks
 returned `UnauthorizedOperation`. The current intended action list is:
 
-``` json
-
+```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "EC2ReadOnlyDiscovery",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DescribeAvailabilityZones",
-        "ec2:DescribeImages",
-        "ec2:DescribeInstanceTypes",
-        "ec2:DescribeInstances",
-        "ec2:DescribeInternetGateways",
-        "ec2:DescribeKeyPairs",
-        "ec2:DescribeNetworkAcls",
-        "ec2:DescribeRegions",
-        "ec2:DescribeRouteTables",
-        "ec2:DescribeSecurityGroups",
-        "ec2:DescribeSubnets",
-        "ec2:DescribeVpcs"
-      ],
-      "Resource": "*"
-    }
-  ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EC2ReadOnlyDiscovery",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeImages",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInternetGateways",
+        "ec2:DescribeKeyPairs",
+        "ec2:DescribeNetworkAcls",
+        "ec2:DescribeRegions",
+        "ec2:DescribeRouteTables",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs"
+      ],
+      "Resource": "*"
+    }
+  ]
 }
 ```
 
