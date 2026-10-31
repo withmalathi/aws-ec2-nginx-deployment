@@ -406,10 +406,7 @@ All commands in this section are read-only.
 
 ``` bash
 
-aws ec2 describe-instances \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --output table
+aws ec2 describe-instances --region us-west-2 --profile ec2-nginx-lab --output table
 ```
 
 The command succeeded and returned an empty table---no instances were
