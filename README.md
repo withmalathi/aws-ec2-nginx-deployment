@@ -35,16 +35,15 @@ elsewhere in the AWS account.
 - [11. Check the AMI and instance type](#11-check-the-ami-and-instance-type)
 - [12. Check public-IP behavior](#12-check-public-ip-behavior)
 - [13. Inspect the existing security group](#13-inspect-the-existing-security-group)
-- [14. Verified findings](#14-verified-findings)
-- [15. Pending work](#15-pending-work)
-- [16. Security and cost notes](#16-security-and-cost-notes)
-- [17. Troubleshooting notes](#17-troubleshooting-notes)
+- [14. Verified findings (pre-deployment discovery)](#14-verified-findings-pre-deployment-discovery)
+- [15. Security and cost notes](#15-security-and-cost-notes)
+- [16. Troubleshooting notes](#16-troubleshooting-notes)
+- [17. Before repeating this deployment](#17-before-repeating-this-deployment)
 - [18. Launch the EC2 instance and install NGINX](#18-launch-the-ec2-instance-and-install-nginx)
 - [19. Verify the deployment](#19-verify-the-deployment)
 - [20. Troubleshooting evidence](#20-troubleshooting-evidence)
 - [21. Cleanup and cost control](#21-cleanup-and-cost-control)
-- [22. Current project status](#22-current-project-status)
-  
+- [22. Deployment Verification and Cleanup Results](#22-deployment-verification-and-cleanup-results)
 ------------------------------------------------------------------------
 
 ## 1. Project overview
@@ -984,34 +983,336 @@ aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --pro
 aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query "Reservations[0].Instances[0].SecurityGroups[].{GroupId:GroupId,GroupName:GroupName}" --output table
 ```
 
-## 18. Launch the EC2 instance and install NGINX
+## 17. Before repeating this deployment
 
-The launch was performed from WSL Ubuntu using the named profile. The
-command created one Amazon Linux 2023 instance, attached the dedicated
-security group and existing key pair, requested a public IPv4 address,
-configured an 8 GiB `gp3` root volume, and used EC2 user data to install
-and start NGINX.
+The resource IDs, IP addresses, AMI IDs, and other environment-specific values in this README are examples from my AWS lab execution. They are retained as historical evidence of the deployment.
 
-> **Reproducibility note:** AMI IDs and public IP addresses can change.
-> Re-check the AMI and your current SSH source IP before re-running this
-> lab. Do not run the launch command twice unless you intentionally want
-> another instance.
+**Do not assume these values will be the same in your AWS account.** Before repeating the lab, discover the current values and replace the corresponding placeholders in the commands.
 
-### Find the currently existing Security Groups
+| Value | Example from my lab | What you should do |
+|:---|:---|:---|
+| AWS Region | `us-west-2` | Replace with your selected AWS Region and use it consistently. |
+| AWS CLI profile | `ec2-nginx-lab` | Replace with your configured AWS CLI profile name. |
+| AWS account ID | Not displayed | Use your own account; do not copy another account's ID. |
+| VPC ID | `vpc-0307ce67a0df86851` | Discover the VPC ID in your selected Region. |
+| Subnet ID | `subnet-02ecdd68edfbf7326` | Select an available subnet in your chosen VPC and Availability Zone. |
+| AMI ID | `ami-0f4093d08169978db` | Discover a currently available Amazon Linux 2023 AMI in your Region. |
+| Instance type | `t3.micro` | Confirm availability, architecture, account eligibility, and pricing. |
+| Key pair name | `ec2-nginx-lab-key` | Use an existing key pair or create one in the selected Region. |
+| Private key path | `~/.ssh/ec2-nginx-lab-key.pem` | Replace with the actual path to your private key file. |
+| Security Group ID | `sg-01a2155926d1b3e19` | Use the ID returned when you create your own dedicated security group. |
+| SSH source IP | Public IP at setup time | Discover your current public IP and use it with `/32`. |
+| EC2 instance ID | `i-0ea3759cfcb87faed` | Use the instance ID returned by your own launch command. |
+| Public IPv4 address | `35.92.109.120` | Retrieve the current public IP of your running instance. |
+| Private IPv4 address | `172.31.46.91` | Retrieve the private IP assigned to your instance. |
+| Website URL | `http://35.92.109.120` | Replace with your instance's current public IPv4 address. |
+
+**Important distinction:**
+
+- Historical values are retained to document what I actually used and verified.
+- Dynamic values must be rediscovered when you repeat the lab.
+- Resource IDs are not interchangeable. For example, a Security Group ID from another VPC cannot simply be reused.
+- Public IPv4 addresses can change. Always retrieve the current address before testing HTTP or SSH.
+- AMI IDs are Region-specific and can change as new images are released.
+- A resource that was deleted or terminated must be recreated before it can be used again.
+
+### Quick reference: discover your current AWS values
+
+Run these commands before deployment. Replace the Region and profile if yours are different.
+
+**1. Verify AWS identity**
+
 ```bash
-aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}" --output table
+aws sts get-caller-identity --profile ec2-nginx-lab
 ```
 
-# Replace your above sg-01a2155926d1b3e19 in below code
+**2. Find your VPC**
 
-``` bash
+```bash
+aws ec2 describe-vpcs \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query "Vpcs[].{VpcId:VpcId,Default:IsDefault,CIDR:CidrBlock,State:State}" \
+  --output table
+```
+
+**3. Find available subnets**
+
+```bash
+aws ec2 describe-subnets \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,VpcId:VpcId,CIDR:CidrBlock,State:State,PublicIP:MapPublicIpOnLaunch}" \
+  --output table
+```
+
+**4. Find the latest available Amazon Linux 2023 x86-64 AMI**
+
+```bash
+aws ec2 describe-images \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --owners amazon \
+  --filters "Name=name,Values=al2023-ami-2023.*-x86_64" "Name=state,Values=available" "Name=architecture,Values=x86_64" "Name=root-device-type,Values=ebs" \
+  --query "Images | sort_by(@, &CreationDate)[-1].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" \
+  --output table
+```
+
+**5. Find your current public IP for SSH access**
+
+```bash
+curl -4 https://checkip.amazonaws.com
+```
+
+Use the returned address followed by `/32` in the SSH inbound rule.
+
+**6. Find existing EC2 key pairs**
+
+```bash
+aws ec2 describe-key-pairs \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query "KeyPairs[].{Name:KeyName,KeyPairId:KeyPairId}" \
+  --output table
+```
+
+**7. Find existing security groups**
+
+Replace the VPC ID with the one discovered in your account:
+
+```bash
+aws ec2 describe-security-groups \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --filters "Name=vpc-id,Values=<VPC_ID>" \
+  --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}" \
+  --output table
+```
+
+**8. Retrieve your instance's current IP addresses**
+
+Replace `<INSTANCE_ID>` with the ID returned by your launch command.
+
+```bash
+aws ec2 describe-instances \
+  --instance-ids <INSTANCE_ID> \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query "Reservations[0].Instances[0].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,AZ:Placement.AvailabilityZone}" \
+  --output table
+```
+
+**9. Verify the instance's security groups**
+
+```bash
+aws ec2 describe-instances \
+  --instance-ids <INSTANCE_ID> \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query "Reservations[0].Instances[0].SecurityGroups[].{GroupId:GroupId,GroupName:GroupName}" \
+  --output table
+```
+
+---
+
+## 18. Launch the EC2 instance and install NGINX
+
+The original deployment was performed from WSL Ubuntu using the named profile. It created one Amazon Linux 2023 instance, attached a dedicated security group and an existing key pair, requested a public IPv4 address, configured an 8 GiB `gp3` root volume, and used EC2 user data to install and start NGINX.
+
+> **Important deployment order:** Complete the steps in this section in order:
+>
+> 1. Confirm the VPC, subnet, AMI, and current SSH source IP.
+> 2. Create the dedicated security group.
+> 3. Add and verify the inbound rules.
+> 4. Create or confirm the EC2 key pair and local private key.
+> 5. Launch the EC2 instance using the newly created security group and key pair.
+>
+> Do not run the launch command before the security group and key pair are ready.
+
+### 18.1 Create and configure the dedicated security group
+
+A security group acts as a virtual firewall for an EC2 instance.
+
+For this public NGINX demonstration, we need two inbound rules:
+
+| Port | Protocol | Source | Purpose |
+|:---:|:---|:---|:---|
+| 22 | TCP | Your public IP `/32` | SSH administration |
+| 80 | TCP | `0.0.0.0/0` | Public HTTP website |
+
+**Step 1: Confirm the VPC ID**
+
+Use the VPC ID discovered in Section 8. The original lab used:
+
+```text
+vpc-0307ce67a0df86851
+```
+
+For a new environment, replace this with your own VPC ID.
+
+**Step 2: Create the dedicated security group**
+
+Run:
+
+```bash
+aws ec2 create-security-group \
+  --group-name ec2-nginx-lab-sg \
+  --description "Security group for EC2 NGINX web application" \
+  --vpc-id <VPC_ID> \
+  --region us-west-2 \
+  --profile ec2-nginx-lab
+```
+
+The output returns a `GroupId`. Copy this value. You will use it in the inbound-rule and EC2 launch commands.
+
+Original lab screenshot:
+
+<img width="2125" height="122" alt="Security group creation output" src="https://github.com/user-attachments/assets/572c8087-de8c-4317-a7e0-49b69ca581c0" />
+
+**Step 3: Find your current public IP**
+
+Run:
+
+```bash
+curl -4 https://checkip.amazonaws.com
+```
+
+Use the returned IPv4 address in the next command. Add `/32` to restrict SSH access to that address.
+
+For example, if the command returns `203.0.113.10`, the SSH source CIDR would be `203.0.113.10/32`. This is only an example address; use your actual result.
+
+**Step 4: Add both inbound rules**
+
+Replace:
+
+- `<SECURITY_GROUP_ID>` with the `GroupId` returned in Step 2.
+- `<YOUR_PUBLIC_IP>` with the public IPv4 address returned in Step 3.
+
+```bash
+aws ec2 authorize-security-group-ingress \
+  --group-id <SECURITY_GROUP_ID> \
+  --ip-permissions '[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"IpRanges":[{"CidrIp":"<YOUR_PUBLIC_IP>/32","Description":"SSH access from my public IP"}]},{"IpProtocol":"tcp","FromPort":80,"ToPort":80,"IpRanges":[{"CidrIp":"0.0.0.0/0","Description":"Public HTTP access"}]}]' \
+  --region us-west-2 \
+  --profile ec2-nginx-lab
+```
+
+Original lab screenshot:
+
+<img width="2007" height="632" alt="Security group inbound rules command" src="https://github.com/user-attachments/assets/30c1a068-b795-4f7a-a465-fcfb06a37d79" />
+
+**Step 5: Verify the inbound rules**
+
+```bash
+aws ec2 describe-security-groups \
+  --group-ids <SECURITY_GROUP_ID> \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query "SecurityGroups[0].IpPermissions" \
+  --output table
+```
+
+Original lab screenshot:
+
+<img width="1482" height="666" alt="Verify security group inbound rules" src="https://github.com/user-attachments/assets/f29bff48-9c60-4dfb-8882-66b400f7a330" />
+
+Confirm that TCP ports `22` and `80` are present with the intended sources.
+
+**Important:** Use the newly created security group ID in the EC2 launch command. Do not use the old security group ID `sg-01a2155926d1b3e19`; it belonged to the original lab and was deleted during cleanup.
+
+### 18.2 Create or confirm the EC2 key pair
+
+EC2 uses a key pair for SSH authentication. The private key is downloaded when the key pair is created. AWS does not provide a way to download that same private key again later.
+
+The original lab used:
+
+- Key pair name: `ec2-nginx-lab-key`
+- Local private key path: `~/.ssh/ec2-nginx-lab-key.pem`
+
+**Step 1: Check whether the key pair already exists**
+
+```bash
+aws ec2 describe-key-pairs \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --key-names ec2-nginx-lab-key \
+  --output table
+```
+
+If it exists and you still have its matching private key file, you can use it. Do not create another key pair with the same name.
+
+**Step 2: If it does not exist, create a new key pair**
+
+First, create the local SSH directory and restrict its permissions:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+```
+
+Then create the key pair and save the returned private key locally:
+
+```bash
+aws ec2 create-key-pair \
+  --key-name ec2-nginx-lab-key \
+  --key-type rsa \
+  --key-format pem \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query 'KeyMaterial' \
+  --output text > ~/.ssh/ec2-nginx-lab-key.pem
+```
+
+Restrict the private-key file permissions:
+
+```bash
+chmod 400 ~/.ssh/ec2-nginx-lab-key.pem
+```
+
+Verify the file exists:
+
+```bash
+ls -l ~/.ssh/ec2-nginx-lab-key.pem
+```
+
+The file should be readable only by its owner. Do not upload this private key to GitHub or include it in screenshots.
+
+**If the key pair exists in AWS but the private key file is missing:** AWS cannot retrieve the original private key. Create a new key pair with a different name, save its private key securely, and use the new key pair name in the EC2 launch command.
+
+### 18.3 Confirm the AMI and launch values
+
+Before launching, confirm the values you intend to use:
+
+| Parameter | Original lab value | For a new deployment |
+|:---|:---|:---|
+| Region | `us-west-2` | Use your selected Region |
+| AMI | `ami-0f4093d08169978db` | Re-discover a currently available AMI |
+| Instance type | `t3.micro` | Verify availability and pricing |
+| Key pair | `ec2-nginx-lab-key` | Use the key pair confirmed or created in Section 18.2 |
+| Security group | `sg-01a2155926d1b3e19` | Use the new `GroupId` from Section 18.1 |
+| Subnet | `subnet-02ecdd68edfbf7326` | Use a subnet in the selected VPC |
+| Root volume | 8 GiB `gp3` | Confirm the size and type you want |
+
+The original AMI ID and subnet ID are historical values. They may not be valid in another Region or account.
+
+### 18.4 Launch the EC2 instance
+
+The following command creates one EC2 instance and runs user data to install and start NGINX.
+
+Replace these values before running:
+
+- `<AMI_ID>` with the current Amazon Linux 2023 AMI ID.
+- `<KEY_PAIR_NAME>` with the key pair name confirmed in Section 18.2.
+- `<SECURITY_GROUP_ID>` with the new security group ID created in Section 18.1.
+- `<SUBNET_ID>` with the selected subnet ID.
+
+```bash
 aws ec2 run-instances \
-  --image-id ami-0f4093d08169978db \
+  --image-id <AMI_ID> \
   --instance-type t3.micro \
   --count 1 \
-  --key-name ec2-nginx-lab-key \
-  --security-group-ids sg-01a2155926d1b3e19 \
-  --subnet-id subnet-02ecdd68edfbf7326 \
+  --key-name <KEY_PAIR_NAME> \
+  --security-group-ids <SECURITY_GROUP_ID> \
+  --subnet-id <SUBNET_ID> \
   --associate-public-ip-address \
   --block-device-mappings 'DeviceName=/dev/xvda,Ebs={VolumeSize=8,VolumeType=gp3,DeleteOnTermination=true}' \
   --user-data '#!/bin/bash
@@ -1024,105 +1325,60 @@ echo "<h1>My AWS EC2 Nginx Lab</h1><p>Nginx is running successfully!</p>" > /usr
   --output table
 ```
 
-The instance was `i-0ea3759cfcb87faed`, launched in `us-west-2a` as a
-`t3.micro`. Its observed private IP was `172.31.46.91` and public IPv4
-address was `35.92.109.120` at the time of testing. Public IPs are
-dynamic and may change after stop/start.
+**Expected result:** The command should return an instance ID and its initial state. The initial state may be `pending`; wait for the instance to become `running` before testing SSH or HTTP.
 
-![Launch the EC2
-instance](screenshots/18-10-launch-the-ec2-instance.png)
+Record the instance ID returned by the command. You will need it for verification and cleanup.
 
-![Check the newly launched
-instance](screenshots/18-11-check-the-new-instance.png)
+The original lab instance was:
 
+- Instance ID: `i-0ea3759cfcb87faed`
+- Instance type: `t3.micro`
+- Availability Zone: `us-west-2a`
+- Private IP: `172.31.46.91`
+- Public IPv4: `35.92.109.120` at the time of testing
 
-### 18.1 Create and configure the dedicated Security Group
+These are historical values. Your instance will have its own ID and IP addresses.
 
-A Security Group acts as a virtual firewall for an EC2 instance.
+![Launch the EC2 instance](screenshots/18-10-launch-the-ec2-instance.png)
 
-For this public NGINX demonstration, we need two inbound rules:
+![Check the newly launched instance](screenshots/18-11-check-the-new-instance.png)
 
-| Port | Protocol | Source | Purpose |
-|---|---|---|---|
-| 22 | TCP | My public IP `/32` | SSH administration |
-| 80 | TCP | `0.0.0.0/0` | Public HTTP website |
+**Important:** Do not run the launch command twice unless you intentionally want another EC2 instance. Each successful run can create another billable instance.
 
-**Step 1: Create the dedicated Security Group**
-
-Run:
-
-```bash
-aws ec2 create-security-group --group-name ec2-nginx-lab-sg --description "Security group for EC2 NGINX web application" --vpc-id vpc-0307ce67a0df86851 --region us-west-2 --profile ec2-nginx-lab
-```
-
-<img width="2125" height="122" alt="image" src="https://github.com/user-attachments/assets/572c8087-de8c-4317-a7e0-49b69ca581c0" />
-
-
-The output returns a `GroupId`. Copy this value for the next command.
-
-**Step 2: Find your current public IP**
-
-Run:
-
-```bash
-curl -4 https://checkip.amazonaws.com
-```
-
-Use the returned IPv4 address in the next command. Add `/32` to restrict SSH access to that address.
-
-**Step 3: Add both inbound rules together**
-
-Replace `<SECURITY_GROUP_ID>` with the GroupId from Step 1 and `<YOUR_PUBLIC_IP>` with the address from Step 2.
-
-```bash
-aws ec2 authorize-security-group-ingress --group-id <SECURITY_GROUP_ID> --ip-permissions '[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"IpRanges":[{"CidrIp":"<YOUR_PUBLIC_IP>/32","Description":"SSH access from my public IP"}]},{"IpProtocol":"tcp","FromPort":80,"ToPort":80,"IpRanges":[{"CidrIp":"0.0.0.0/0","Description":"Public HTTP access"}]}]' --region us-west-2 --profile ec2-nginx-lab
-```
-<img width="2007" height="632" alt="image" src="https://github.com/user-attachments/assets/30c1a068-b795-4f7a-a465-fcfb06a37d79" />
-
-
-
-**Step 4: Verify the inbound rules**
-
-```bash
-aws ec2 describe-security-groups --group-ids <SECURITY_GROUP_ID> --region us-west-2 --profile ec2-nginx-lab --query "SecurityGroups[0].IpPermissions" --output table
-```
-
-<img width="1482" height="666" alt="image" src="https://github.com/user-attachments/assets/f29bff48-9c60-4dfb-8882-66b400f7a330" />
-
-
-Confirm that TCP ports 22 and 80 are present with the intended sources.
-
-**Important:** Use the newly created Security Group ID in the EC2 launch command in Section 18. Do not use an old or deleted Security Group ID.
-
+---
 
 ## 19. Verify the deployment
 
+Use the instance ID and public IP returned for your own deployment. Do not copy the historical instance ID or public IP into a new deployment.
+
 ### 19.1 Check instance state and addresses
 
-# Check and Change your instance id `i-0ea3759cfcb87faed` below
+Replace `<INSTANCE_ID>` with the ID returned by your launch command.
 
-``` bash
+```bash
 aws ec2 describe-instances \
-  --instance-ids i-0ea3759cfcb87faed \
+  --instance-ids <INSTANCE_ID> \
   --region us-west-2 \
   --profile ec2-nginx-lab \
-  --query 'Reservations[0].Instances[0].{State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress}' \
+  --query 'Reservations[0].Instances[0].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,AZ:Placement.AvailabilityZone}' \
   --output table
 ```
 
-# Check and Change your Public IP
-Observed state: `running`. Observed public IP at test time:
-`35.92.109.120`.
+**Expected result:** The instance should eventually show state `running`. Record the current public and private IP addresses.
 
 ### 19.2 Test the homepage over HTTP
 
-``` bash
-curl -i --connect-timeout 5 http://35.92.109.120
+Replace `<PUBLIC_IP>` with the current public IPv4 address from the previous command.
+
+```bash
+curl -i --connect-timeout 5 http://<PUBLIC_IP>
 ```
 
-Observed response included:
+**Expected result:** The response should include an HTTP success status and the HTML page created by the user-data script.
 
-``` text
+The original deployment returned:
+
+```text
 HTTP/1.1 200 OK
 Server: nginx/1.30.6
 Content-Type: text/html
@@ -1132,60 +1388,67 @@ Content-Type: text/html
 
 A second concise check was also successful:
 
-``` bash
-curl -sS -o /dev/null -w 'HTTP status: %{http_code}\nResponse time: %{time_total}s\n' http://35.92.109.120/
+```bash
+curl -sS -o /dev/null -w 'HTTP status: %{http_code}\nResponse time: %{time_total}s\n' http://<PUBLIC_IP>/
 ```
 
-Observed output:
+Original observed output:
 
-``` text
+```text
 HTTP status: 200
 Response time: 0.511863s
 ```
 
-This is one request's response time, not a long-term performance
-benchmark.
+This is one request's response time, not a long-term performance benchmark.
 
 ### 19.3 Verify NGINX service health over SSH
 
-``` bash
+Replace `<PUBLIC_IP>` with the current public IPv4 address. Confirm that the private-key path and key pair match the instance.
+
+```bash
 ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
   -o StrictHostKeyChecking=accept-new \
-  ec2-user@35.92.109.120 \
+  ec2-user@<PUBLIC_IP> \
   'sudo systemctl is-active nginx'
 ```
 
-Observed output: `active`.
+**Expected result:**
+
+```text
+active
+```
+
+Original deployment screenshots:
 
 ![Test the NGINX website](screenshots/18-12-test-the-nginx-website.png)
 
-![Verify NGINX service
-health](screenshots/18-13-verify-nginx-service-health.png)
+![Verify NGINX service health](screenshots/18-13-verify-nginx-service-health.png)
 
 For more detail:
 
-``` bash
+```bash
 ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
-  ec2-user@35.92.109.120 \
+  ec2-user@<PUBLIC_IP> \
   'sudo systemctl status nginx --no-pager'
 ```
 
-Observed evidence included `Active: active (running)`, `enabled`, and a
-successful NGINX configuration test (`nginx -t`).
+Original observed evidence included `Active: active (running)`, `enabled`, and a successful NGINX configuration test (`nginx -t`).
+
+---
 
 ## 20. Troubleshooting evidence
 
 ### 20.1 Inspect the system journal
 
-``` bash
+Use the current public IP:
+
+```bash
 ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
-  ec2-user@35.92.109.120 \
+  ec2-user@<PUBLIC_IP> \
   'sudo journalctl -u nginx -n 20 --no-pager'
 ```
 
-The observed entries showed normal service startup, a successful
-configuration test, and `Started nginx.service`. No startup error was
-present in the output shared during the lab.
+The observed entries from the original lab showed normal service startup, a successful configuration test, and `Started nginx.service`. No startup error was present in the output shared during the lab.
 
 ![Check NGINX health](screenshots/19-1-check-nginx-health.png)
 
@@ -1193,153 +1456,179 @@ present in the output shared during the lab.
 
 ### 20.2 Inspect access logs
 
-``` bash
+```bash
 ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
-  ec2-user@35.92.109.120 \
+  ec2-user@<PUBLIC_IP> \
   'sudo tail -n 10 /var/log/nginx/access.log'
 ```
 
-![Check the NGINX access
-log](screenshots/19-3-check-the-nginx-access-log.png)
+![Check the NGINX access log](screenshots/19-3-check-the-nginx-access-log.png)
 
-Observed requests:
+Original observed requests:
 
-| Request                        | Status | Interpretation                                      |
-|:-------------------------------|-------:|:----------------------------------------------------|
-| `GET /` from curl              |  `200` | Homepage request succeeded                          |
-| `GET /` from Chrome            |  `200` | Browser loaded the homepage                         |
-| `GET /favicon.ico` from Chrome |  `404` | Browser requested an icon file that was not present |
+| Request | Status | Interpretation |
+|:---|---:|:---|
+| `GET /` from curl | `200` | Homepage request succeeded |
+| `GET /` from Chrome | `200` | Browser loaded the homepage |
+| `GET /favicon.ico` from Chrome | `404` | Browser requested an icon file that was not present |
 
 ### 20.3 Inspect the error log
 
-``` bash
+```bash
 ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
-  ec2-user@35.92.109.120 \
+  ec2-user@<PUBLIC_IP> \
   'sudo tail -n 20 /var/log/nginx/error.log'
 ```
 
-![Verify the NGINX error
-log](screenshots/19-4-verify-the-nginx-error-log.png)
+![Verify the NGINX error log](screenshots/19-4-verify-the-nginx-error-log.png)
 
-The relevant error said that `/usr/share/nginx/html/favicon.ico` did not
-exist. This explains the favicon `404`; it does **not** mean the
-homepage deployment failed. The main `/` endpoint continued returning
-`200 OK`. The other log entries were `[notice]` messages about normal
-NGINX startup.
+The relevant error said that `/usr/share/nginx/html/favicon.ico` did not exist. This explains the favicon `404`; it does **not** mean the homepage deployment failed. The main `/` endpoint continued returning `200 OK`. The other log entries were `[notice]` messages about normal NGINX startup.
 
-**Troubleshooting approach:** Observe the symptom, collect
-service/log/HTTP evidence, interpret the evidence, and only then change
-something. Do not restart a service blindly when the evidence shows it
-is healthy.
+**Troubleshooting approach:** Observe the symptom, collect service/log/HTTP evidence, interpret the evidence, and only then change something. Do not restart a service blindly when the evidence shows it is healthy.
 
-![Verify HTTP response status and
-timing](screenshots/19-5-verify-the-servers-http-response-headers-and-status.png)
+![Verify HTTP response status and timing](screenshots/19-5-verify-the-servers-http-response-headers-and-status.png)
+
+---
 
 ## 21. Cleanup and cost control
 
-Before cleanup, preserve screenshots and notes needed for your demo. An
-initial instance was replaced during practice, so both instance IDs were
-considered during the cleanup review.
+Before cleanup, preserve screenshots and notes needed for your demo. An initial instance was replaced during practice, so both instance IDs were considered during the original cleanup review.
 
-Check the instances:
+### 21.1 Check the instance
 
-``` bash
+Replace `<INSTANCE_ID>` with the instance ID returned by your launch command.
+
+```bash
 aws ec2 describe-instances \
-  --instance-ids i-0ea3759cfcb87faed \
+  --instance-ids <INSTANCE_ID> \
   --region us-west-2 \
   --profile ec2-nginx-lab \
   --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,PublicIP:PublicIpAddress}' \
   --output table
 ```
 
+### 21.2 Stop or terminate the instance
+
 If you need the environment again soon, you can stop the instance:
 
-``` bash
+```bash
 aws ec2 stop-instances \
-  --instance-ids i-0ea3759cfcb87faed \
+  --instance-ids <INSTANCE_ID> \
   --region us-west-2 \
   --profile ec2-nginx-lab
 ```
 
-If the lab is finished and the instance is no longer needed, terminate
-it instead:
+If the lab is finished and the instance is no longer needed, terminate it instead:
 
-``` bash
+```bash
 aws ec2 terminate-instances \
-  --instance-ids i-0ea3759cfcb87faed \
+  --instance-ids <INSTANCE_ID> \
   --region us-west-2 \
   --profile ec2-nginx-lab
 ```
 
-Do not execute both cleanup options as a routine sequence. Choose stop
-or terminate according to whether you need the instance again. After
-termination, verify the final state. The root EBS volume was configured
-with `DeleteOnTermination=true`, but check for any other resources you
-created (such as the key pair and security group) before deciding
-whether to delete them. Terminating an instance does not automatically
-delete the standalone EC2 key pair or security group. Do not delete
-shared resources that another workload may use.
+Do not execute both cleanup options as a routine sequence. Choose stop or terminate according to whether you need the instance again.
 
-## 22. Deployment Verification and Cleanup Results
+### 21.3 Verify termination
 
-### Deployment Verification
+After termination, verify the final state:
+
+```bash
+aws ec2 describe-instances \
+  --instance-ids <INSTANCE_ID> \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name}' \
+  --output table
+```
+
+The root EBS volume was configured with `DeleteOnTermination=true`, but check for any other resources you created before deciding whether to delete them.
+
+### 21.4 Review separately created resources
+
+Terminating an instance does not automatically delete the standalone EC2 key pair or security group.
+
+List the security group:
+
+```bash
+aws ec2 describe-security-groups \
+  --region us-west-2 \
+  --profile ec2-nginx-lab \
+  --group-ids <SECURITY_GROUP_ID>
+```
+
+If you have confirmed that the security group is dedicated to this lab, is no longer attached to any resource, and is safe to delete, run:
+
+```bash
+aws ec2 delete-security-group \
+  --group-id <SECURITY_GROUP_ID> \
+  --region us-west-2 \
+  --profile ec2-nginx-lab
+```
+
+If you no longer need the key pair, you can delete its AWS public-key record:
+
+```bash
+aws ec2 delete-key-pair \
+  --key-name <KEY_PAIR_NAME> \
+  --region us-west-2 \
+  --profile ec2-nginx-lab
+```
+
+Deleting the AWS key-pair record does not delete your local `.pem` file. Securely remove the local private key only when you are certain you no longer need it and have retained any required evidence.
+
+Do not delete shared resources that another workload may use. Review the AWS Console and Billing dashboard for resources and charges beyond the specific items checked in this lab.
+
+---
+
+## 22. Deployment verification and cleanup results
+
+### Deployment verification
 
 The EC2 and NGINX deployment was successfully tested.
 
--   EC2 instance `i-0ea3759cfcb87faed` was running at the last
-    deployment verification.
--   The NGINX service was active.
--   SSH access worked successfully.
--   The public homepage returned **HTTP 200 OK**.
--   NGINX logs confirmed successful startup.
--   A request for `/favicon.ico` returned `404 Not Found` because the
-    favicon file was missing. This did not affect the homepage.
+- EC2 instance `i-0ea3759cfcb87faed` was running at the last deployment verification.
+- The NGINX service was active.
+- SSH access worked successfully.
+- The public homepage returned **HTTP 200 OK**.
+- NGINX logs confirmed successful startup.
+- A request for `/favicon.ico` returned `404 Not Found` because the favicon file was missing. This did not affect the homepage.
 
-The instance was subsequently terminated. Its public IP is no longer a
-reliable endpoint and must be checked afresh if the lab is repeated.
+The instance was subsequently terminated. Its public IP is no longer a reliable endpoint and must be checked afresh if the lab is repeated.
 
-### Cleanup Results
+### Cleanup results
 
-The following cleanup checks were completed in the AWS Oregon region
-(`us-west-2`):
+The following cleanup checks were completed in the AWS Oregon region (`us-west-2`):
 
-| Resource                                                | Result                                                     |
-|:--------------------------------------------------------|:-----------------------------------------------------------|
-| EC2 instance `i-0ea3759cfcb87faed`                      | Terminated                                                 |
-| Lab security group `ec2-nginx-lab-sg`                   | Deleted and verified                                       |
-| EBS volumes                                             | None listed in the console during the cleanup check        |
-| Elastic IP addresses                                    | None found in the console during the cleanup check         |
-| EBS snapshots owned by me                               | None listed in the console during the cleanup check        |
-| NAT Gateways                                            | None found in the console during the cleanup check         |
-| Load Balancers                                          | None found in the console during the cleanup check         |
-| Auto Scaling Groups                                     | None found in the console during the cleanup check         |
+| Resource | Result |
+|:---|:---|
+| EC2 instance `i-0ea3759cfcb87faed` | Terminated |
+| Lab security group `ec2-nginx-lab-sg` | Deleted and verified |
+| EBS volumes | None listed in the console during the cleanup check |
+| Elastic IP addresses | None found in the console during the cleanup check |
+| EBS snapshots owned by me | None listed in the console during the cleanup check |
+| NAT Gateways | None found in the console during the cleanup check |
+| Load Balancers | None found in the console during the cleanup check |
+| Auto Scaling Groups | None found in the console during the cleanup check |
 | Default VPC, subnets, route table, and Internet Gateway | Retained; these were existing default networking resources |
-| Lab IAM user, group, and policies                       | Retained                                                   |
+| Lab IAM user, group, and policies | Retained |
 
-The IAM user used for this lab did not have permission to describe
-network interfaces or EBS volumes through the AWS CLI. Those resources
-were checked using the AWS Console instead.
+The IAM user used for this lab did not have permission to describe network interfaces or EBS volumes through the AWS CLI. Those resources were checked using the AWS Console instead.
 
-These results apply to the resources and region checked; they do not
-guarantee that no billable resources exist in other regions or AWS
-services.
+These results apply to the resources and region checked; they do not guarantee that no billable resources exist in other regions or AWS services.
 
-### Repeating the Lab
+### Repeating the lab
 
 Before running the lab again:
 
-1.  Verify your AWS identity and region.
-2.  Check the current state of EC2 instances and the availability of the
-    required key pair and security group.
-3.  Confirm the current public IP address before configuring SSH access.
-4.  Follow the deployment steps in this README.
-5.  After practising, follow Section 21 to stop or terminate the
-    instance and review resources created for the lab.
+1. Verify your AWS identity and Region.
+2. Check the current state of EC2 instances and the availability of the required key pair and security group.
+3. Confirm the current public IP address before configuring SSH access.
+4. Discover the current VPC, subnet, and AMI values.
+5. Create and verify the dedicated security group before launching the instance.
+6. Confirm that the EC2 key pair exists and that its matching private key is available locally.
+7. Follow the deployment steps in Section 18.
+8. Verify HTTP, SSH, NGINX service health, and logs.
+9. After practising, follow Section 21 to stop or terminate the instance and review resources created for the lab.
 
-**Final status:** The EC2 + NGINX deployment was successfully tested and
-the instance was terminated. The lab security group was deleted. No EBS
-volumes, Elastic IP addresses, snapshots, NAT Gateways, Load Balancers,
-or Auto Scaling Groups were found in the Oregon-region checks. The
-default VPC networking and lab IAM setup were retained for future
-practice. These checks cover only the listed resource types and
-`us-west-2`; review AWS Billing for any account-wide charges.
+**Final status:** The EC2 + NGINX deployment was successfully tested and the instance was terminated. The lab security group was deleted. No EBS volumes, Elastic IP addresses, snapshots, NAT Gateways, Load Balancers, or Auto Scaling Groups were found in the Oregon-region checks. The default VPC networking and lab IAM setup were retained for future practice. These checks cover only the listed resource types and `us-west-2`; review AWS Billing for any account-wide charges.
