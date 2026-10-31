@@ -347,10 +347,9 @@ account number and user ID are intentionally not reproduced here.
 
 The ARN had this form:
 
-``` text
 
-arn:aws:iam::\<AWS_ACCOUNT_ID>:user/ec2-nginx-lab-user
-```
+> arn:aws:iam::\<AWS_ACCOUNT_ID>:user/ec2-nginx-lab-user
+
 
 **Result: Passed.** AWS authentication works with the `ec2-nginx-lab`
 profile.
@@ -1026,33 +1025,19 @@ aws sts get-caller-identity --profile ec2-nginx-lab
 **2. Find your VPC**
 
 ```bash
-aws ec2 describe-vpcs \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query "Vpcs[].{VpcId:VpcId,Default:IsDefault,CIDR:CidrBlock,State:State}" \
-  --output table
+aws ec2 describe-vpcs --region us-west-2 --profile ec2-nginx-lab --query "Vpcs[].{VpcId:VpcId,State:State,IsDefault:IsDefault,CidrBlock:CidrBlock}" --output table
 ```
 
 **3. Find available subnets**
 
 ```bash
-aws ec2 describe-subnets \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,VpcId:VpcId,CIDR:CidrBlock,State:State,PublicIP:MapPublicIpOnLaunch}" \
-  --output table
+aws ec2 describe-subnets --region us-west-2 --profile ec2-nginx-lab --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,VpcId:VpcId,CIDR:CidrBlock,State:State,PublicIP:MapPublicIpOnLaunch}" --output table
 ```
 
 **4. Find the latest available Amazon Linux 2023 x86-64 AMI**
 
 ```bash
-aws ec2 describe-images \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --owners amazon \
-  --filters "Name=name,Values=al2023-ami-2023.*-x86_64" "Name=state,Values=available" "Name=architecture,Values=x86_64" "Name=root-device-type,Values=ebs" \
-  --query "Images | sort_by(@, &CreationDate)[-1].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" \
-  --output table
+aws ec2 describe-images --region us-west-2 --profile ec2-nginx-lab --owners amazon --filters "Name=name,Values=al2023-ami-2023.*-x86_64" "Name=state,Values=available" "Name=architecture,Values=x86_64" "Name=root-device-type,Values=ebs" --query "Images | sort_by(@, &CreationDate)[-1].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" --output table
 ```
 
 **5. Find your current public IP for SSH access**
@@ -1066,11 +1051,7 @@ Use the returned address followed by `/32` in the SSH inbound rule.
 **6. Find existing EC2 key pairs**
 
 ```bash
-aws ec2 describe-key-pairs \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query "KeyPairs[].{Name:KeyName,KeyPairId:KeyPairId}" \
-  --output table
+aws ec2 describe-key-pairs --region us-west-2 --profile ec2-nginx-lab --query "KeyPairs[].{Name:KeyName,KeyPairId:KeyPairId}" --output table
 ```
 
 **7. Find existing security groups**
@@ -1078,12 +1059,7 @@ aws ec2 describe-key-pairs \
 Replace the VPC ID with the one discovered in your account:
 
 ```bash
-aws ec2 describe-security-groups \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --filters "Name=vpc-id,Values=<VPC_ID>" \
-  --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}" \
-  --output table
+aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=<VPC_ID>" --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}" --output table
 ```
 
 **8. Retrieve your instance's current IP addresses**
@@ -1091,23 +1067,13 @@ aws ec2 describe-security-groups \
 Replace `<INSTANCE_ID>` with the ID returned by your launch command.
 
 ```bash
-aws ec2 describe-instances \
-  --instance-ids <INSTANCE_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query "Reservations[0].Instances[0].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,AZ:Placement.AvailabilityZone}" \
-  --output table
+aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query "Reservations[0].Instances[0].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,AZ:Placement.AvailabilityZone}" --output table
 ```
 
 **9. Verify the instance's security groups**
 
 ```bash
-aws ec2 describe-instances \
-  --instance-ids <INSTANCE_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query "Reservations[0].Instances[0].SecurityGroups[].{GroupId:GroupId,GroupName:GroupName}" \
-  --output table
+aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query "Reservations[0].Instances[0].SecurityGroups[].{GroupId:GroupId,GroupName:GroupName}" --output table
 ```
 
 ---
@@ -1152,12 +1118,7 @@ For a new environment, replace this with your own VPC ID.
 Run:
 
 ```bash
-aws ec2 create-security-group \
-  --group-name ec2-nginx-lab-sg \
-  --description "Security group for EC2 NGINX web application" \
-  --vpc-id <VPC_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab
+aws ec2 create-security-group --group-name ec2-nginx-lab-sg --description "Security group for EC2 NGINX web application" --vpc-id <VPC_ID> --region us-west-2 --profile ec2-nginx-lab
 ```
 
 The output returns a `GroupId`. Copy this value. You will use it in the inbound-rule and EC2 launch commands.
@@ -1200,12 +1161,7 @@ Original lab screenshot:
 **Step 5: Verify the inbound rules**
 
 ```bash
-aws ec2 describe-security-groups \
-  --group-ids <SECURITY_GROUP_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query "SecurityGroups[0].IpPermissions" \
-  --output table
+aws ec2 describe-security-groups --group-ids <SECURITY_GROUP_ID> --region us-west-2 --profile ec2-nginx-lab --query "SecurityGroups[0].IpPermissions" --output table
 ```
 
 Original lab screenshot:
@@ -1228,11 +1184,7 @@ The original lab used:
 **Step 1: Check whether the key pair already exists**
 
 ```bash
-aws ec2 describe-key-pairs \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --key-names ec2-nginx-lab-key \
-  --output table
+aws ec2 describe-key-pairs --region us-west-2 --profile ec2-nginx-lab --key-names ec2-nginx-lab-key --output table
 ```
 
 If it exists and you still have its matching private key file, you can use it. Do not create another key pair with the same name.
@@ -1249,14 +1201,7 @@ chmod 700 ~/.ssh
 Then create the key pair and save the returned private key locally:
 
 ```bash
-aws ec2 create-key-pair \
-  --key-name ec2-nginx-lab-key \
-  --key-type rsa \
-  --key-format pem \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query 'KeyMaterial' \
-  --output text > ~/.ssh/ec2-nginx-lab-key.pem
+aws ec2 create-key-pair --key-name ec2-nginx-lab-key --key-type rsa --key-format pem --region us-west-2 --profile ec2-nginx-lab --query 'KeyMaterial' --output text > ~/.ssh/ec2-nginx-lab-key.pem
 ```
 
 Restrict the private-key file permissions:
@@ -1303,23 +1248,10 @@ Replace these values before running:
 - `<SUBNET_ID>` with the selected subnet ID.
 
 ```bash
-aws ec2 run-instances \
-  --image-id <AMI_ID> \
-  --instance-type t3.micro \
-  --count 1 \
-  --key-name <KEY_PAIR_NAME> \
-  --security-group-ids <SECURITY_GROUP_ID> \
-  --subnet-id <SUBNET_ID> \
-  --associate-public-ip-address \
-  --block-device-mappings 'DeviceName=/dev/xvda,Ebs={VolumeSize=8,VolumeType=gp3,DeleteOnTermination=true}' \
-  --user-data '#!/bin/bash
+aws ec2 run-instances --image-id <AMI_ID> --instance-type t3.micro --count 1 --key-name <KEY_PAIR_NAME> --security-group-ids <SECURITY_GROUP_ID> --subnet-id <SUBNET_ID> --associate-public-ip-address --block-device-mappings 'DeviceName=/dev/xvda,Ebs={VolumeSize=8,VolumeType=gp3,DeleteOnTermination=true}' --user-data '#!/bin/bash
 dnf install -y nginx
 systemctl enable --now nginx
-echo "<h1>My AWS EC2 Nginx Lab</h1><p>Nginx is running successfully!</p>" > /usr/share/nginx/html/index.html' \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query 'Instances[0].{InstanceId:InstanceId,State:State.Name,Type:InstanceType,AZ:Placement.AvailabilityZone}' \
-  --output table
+echo "<h1>My AWS EC2 Nginx Lab</h1><p>Nginx is running successfully!</p>" > /usr/share/nginx/html/index.html' --region us-west-2 --profile ec2-nginx-lab --query 'Instances[0].{InstanceId:InstanceId,State:State.Name,Type:InstanceType,AZ:Placement.AvailabilityZone}' --output table
 ```
 
 **Expected result:** The command should return an instance ID and its initial state. The initial state may be `pending`; wait for the instance to become `running` before testing SSH or HTTP.
@@ -1353,12 +1285,7 @@ Use the instance ID and public IP returned for your own deployment. Do not copy 
 Replace `<INSTANCE_ID>` with the ID returned by your launch command.
 
 ```bash
-aws ec2 describe-instances \
-  --instance-ids <INSTANCE_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query 'Reservations[0].Instances[0].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,AZ:Placement.AvailabilityZone}' \
-  --output table
+aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query 'Reservations[0].Instances[0].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,AZ:Placement.AvailabilityZone}' --output table
 ```
 
 **Expected result:** The instance should eventually show state `running`. Record the current public and private IP addresses.
@@ -1403,10 +1330,7 @@ This is one request's response time, not a long-term performance benchmark.
 Replace `<PUBLIC_IP>` with the current public IPv4 address. Confirm that the private-key path and key pair match the instance.
 
 ```bash
-ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
-  -o StrictHostKeyChecking=accept-new \
-  ec2-user@<PUBLIC_IP> \
-  'sudo systemctl is-active nginx'
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem -o StrictHostKeyChecking=accept-new ec2-user@<PUBLIC_IP> 'sudo systemctl is-active nginx'
 ```
 
 **Expected result:**
@@ -1424,9 +1348,7 @@ Original deployment screenshots:
 For more detail:
 
 ```bash
-ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
-  ec2-user@<PUBLIC_IP> \
-  'sudo systemctl status nginx --no-pager'
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem ec2-user@<PUBLIC_IP> 'sudo systemctl status nginx --no-pager'
 ```
 
 Original observed evidence included `Active: active (running)`, `enabled`, and a successful NGINX configuration test (`nginx -t`).
@@ -1440,9 +1362,7 @@ Original observed evidence included `Active: active (running)`, `enabled`, and a
 Use the current public IP:
 
 ```bash
-ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
-  ec2-user@<PUBLIC_IP> \
-  'sudo journalctl -u nginx -n 20 --no-pager'
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem ec2-user@<PUBLIC_IP> 'sudo journalctl -u nginx -n 20 --no-pager'
 ```
 
 The observed entries from the original lab showed normal service startup, a successful configuration test, and `Started nginx.service`. No startup error was present in the output shared during the lab.
@@ -1472,9 +1392,7 @@ Original observed requests:
 ### 20.3 Inspect the error log
 
 ```bash
-ssh -i ~/.ssh/ec2-nginx-lab-key.pem \
-  ec2-user@<PUBLIC_IP> \
-  'sudo tail -n 20 /var/log/nginx/error.log'
+ssh -i ~/.ssh/ec2-nginx-lab-key.pem ec2-user@<PUBLIC_IP> 'sudo tail -n 20 /var/log/nginx/error.log'
 ```
 
 ![Verify the NGINX error log](screenshots/19-4-verify-the-nginx-error-log.png)
@@ -1496,12 +1414,7 @@ Before cleanup, preserve screenshots and notes needed for your demo. An initial 
 Replace `<INSTANCE_ID>` with the instance ID returned by your launch command.
 
 ```bash
-aws ec2 describe-instances \
-  --instance-ids <INSTANCE_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,PublicIP:PublicIpAddress}' \
-  --output table
+aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,PublicIP:PublicIpAddress}' --output table
 ```
 
 ### 21.2 Stop or terminate the instance
@@ -1509,19 +1422,13 @@ aws ec2 describe-instances \
 If you need the environment again soon, you can stop the instance:
 
 ```bash
-aws ec2 stop-instances \
-  --instance-ids <INSTANCE_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab
+aws ec2 stop-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab
 ```
 
 If the lab is finished and the instance is no longer needed, terminate it instead:
 
 ```bash
-aws ec2 terminate-instances \
-  --instance-ids <INSTANCE_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab
+aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab
 ```
 
 Do not execute both cleanup options as a routine sequence. Choose stop or terminate according to whether you need the instance again.
@@ -1531,12 +1438,7 @@ Do not execute both cleanup options as a routine sequence. Choose stop or termin
 After termination, verify the final state:
 
 ```bash
-aws ec2 describe-instances \
-  --instance-ids <INSTANCE_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name}' \
-  --output table
+aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name}' --output table
 ```
 
 The root EBS volume was configured with `DeleteOnTermination=true`, but check for any other resources you created before deciding whether to delete them.
@@ -1548,28 +1450,19 @@ Terminating an instance does not automatically delete the standalone EC2 key pai
 List the security group:
 
 ```bash
-aws ec2 describe-security-groups \
-  --region us-west-2 \
-  --profile ec2-nginx-lab \
-  --group-ids <SECURITY_GROUP_ID>
+aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --group-ids <SECURITY_GROUP_ID>
 ```
 
 If you have confirmed that the security group is dedicated to this lab, is no longer attached to any resource, and is safe to delete, run:
 
 ```bash
-aws ec2 delete-security-group \
-  --group-id <SECURITY_GROUP_ID> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab
+aws ec2 delete-security-group --group-id <SECURITY_GROUP_ID> --region us-west-2 --profile ec2-nginx-lab
 ```
 
 If you no longer need the key pair, you can delete its AWS public-key record:
 
 ```bash
-aws ec2 delete-key-pair \
-  --key-name <KEY_PAIR_NAME> \
-  --region us-west-2 \
-  --profile ec2-nginx-lab
+aws ec2 delete-key-pair --key-name <KEY_PAIR_NAME> --region us-west-2 --profile ec2-nginx-lab
 ```
 
 Deleting the AWS key-pair record does not delete your local `.pem` file. Securely remove the local private key only when you are certain you no longer need it and have retained any required evidence.
