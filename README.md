@@ -965,19 +965,7 @@ aws ec2 describe-key-pairs --region us-west-2 --profile ec2-nginx-lab --query "K
 aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}" --output table
 ```
 
-**8. Retrieve your instance's current IP addresses**
-
-Replace `<INSTANCE_ID>` with the ID returned by your launch command.
-
-```bash
-aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query "Reservations[0].Instances[0].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,AZ:Placement.AvailabilityZone}" --output table
-```
-
-**9. Verify the instance's security groups**
-
-```bash
-aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query "Reservations[0].Instances[0].SecurityGroups[].{GroupId:GroupId,GroupName:GroupName}" --output table
-```
+---
 
 ## 17. Before repeating this deployment
 
@@ -985,34 +973,31 @@ The resource IDs, IP addresses, AMI IDs, and other environment-specific values i
 
 **Do not assume these values will be the same in your AWS account.** Before repeating the lab, discover the current values and replace the corresponding placeholders in the commands.
 
+### 17.1 Understand the values you need
+
 | Value | Example from my lab | What you should do |
 |:---|:---|:---|
-| AWS Region | `us-west-2` | Replace with your selected AWS Region and use it consistently. |
-| AWS CLI profile | `ec2-nginx-lab` | Replace with your configured AWS CLI profile name. |
-| AWS account ID | Not displayed | Use your own account; do not copy another account's ID. |
+| AWS Region | `us-west-2` | Use your selected AWS Region consistently. |
+| AWS CLI profile | `ec2-nginx-lab` | Use your configured AWS CLI profile name. |
 | VPC ID | `vpc-0307ce67a0df86851` | Discover the VPC ID in your selected Region. |
-| Subnet ID | `subnet-02ecdd68edfbf7326` | Select an available subnet in your chosen VPC and Availability Zone. |
-| AMI ID | `ami-0f4093d08169978db` | Discover a currently available Amazon Linux 2023 AMI in your Region. |
+| Subnet ID | `subnet-02ecdd68edfbf7326` | Select a subnet in your chosen VPC and Availability Zone. |
+| AMI ID | `ami-0f4093d08169978db` | Discover a currently available Amazon Linux 2023 AMI. |
 | Instance type | `t3.micro` | Confirm availability, architecture, account eligibility, and pricing. |
 | Key pair name | `ec2-nginx-lab-key` | Use an existing key pair or create one in the selected Region. |
-| Private key path | `~/.ssh/ec2-nginx-lab-key.pem` | Replace with the actual path to your private key file. |
-| Security Group ID | `sg-01a2155926d1b3e19` | Use the ID returned when you create your own dedicated security group. |
+| Private key path | `~/.ssh/ec2-nginx-lab-key.pem` | Confirm the matching private key exists locally. |
+| Security Group ID | `sg-01a2155926d1b3e19` | Create your own dedicated security group and use its returned ID. |
 | SSH source IP | Public IP at setup time | Discover your current public IP and use it with `/32`. |
-| EC2 instance ID | `i-0ea3759cfcb87faed` | Use the instance ID returned by your own launch command. |
-| Public IPv4 address | `35.92.109.120` | Retrieve the current public IP of your running instance. |
-| Private IPv4 address | `172.31.46.91` | Retrieve the private IP assigned to your instance. |
-| Website URL | `http://35.92.109.120` | Replace with your instance's current public IPv4 address. |
 
-**Important distinction:**
+**Important distinctions:**
 
-- Historical values are retained to document what I actually used and verified.
+- Historical values document what I actually used and verified.
 - Dynamic values must be rediscovered when you repeat the lab.
-- Resource IDs are not interchangeable. For example, a Security Group ID from another VPC cannot simply be reused.
-- Public IPv4 addresses can change. Always retrieve the current address before testing HTTP or SSH.
+- Resource IDs are not interchangeable. For example, a security group from another VPC cannot simply be reused.
 - AMI IDs are Region-specific and can change as new images are released.
 - A resource that was deleted or terminated must be recreated before it can be used again.
+- Do not use the old security group ID `sg-01a2155926d1b3e19`; it was deleted during the original lab cleanup.
 
-### Quick reference: discover your current AWS values
+### 17.2 Quick reference: discover your current AWS values
 
 Run these commands before deployment. Replace the Region and profile if yours are different.
 
@@ -1022,11 +1007,15 @@ Run these commands before deployment. Replace the Region and profile if yours ar
 aws sts get-caller-identity --profile ec2-nginx-lab
 ```
 
+Expected result: Your AWS account and the IAM identity associated with the configured profile.
+
 **2. Find your VPC**
 
 ```bash
 aws ec2 describe-vpcs --region us-west-2 --profile ec2-nginx-lab --query "Vpcs[].{VpcId:VpcId,State:State,IsDefault:IsDefault,CidrBlock:CidrBlock}" --output table
 ```
+
+Expected result: A list of VPCs, their IDs, CIDR blocks, and states.
 
 **3. Find available subnets**
 
@@ -1034,11 +1023,17 @@ aws ec2 describe-vpcs --region us-west-2 --profile ec2-nginx-lab --query "Vpcs[]
 aws ec2 describe-subnets --region us-west-2 --profile ec2-nginx-lab --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,VpcId:VpcId,CIDR:CidrBlock,State:State,PublicIP:MapPublicIpOnLaunch}" --output table
 ```
 
+Expected result: Subnet IDs, Availability Zones, associated VPC IDs, CIDR blocks, and public-IP mapping settings.
+
+Choose a subnet belonging to your selected VPC. For this public web-server demonstration, also confirm that its route table has a route to an Internet Gateway.
+
 **4. Find the latest available Amazon Linux 2023 x86-64 AMI**
 
 ```bash
 aws ec2 describe-images --region us-west-2 --profile ec2-nginx-lab --owners amazon --filters "Name=name,Values=al2023-ami-2023.*-x86_64" "Name=state,Values=available" "Name=architecture,Values=x86_64" "Name=root-device-type,Values=ebs" --query "Images | sort_by(@, &CreationDate)[-1].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" --output table
 ```
+
+Expected result: The latest matching available Amazon Linux 2023 AMI. Copy the returned AMI ID for Section 18.
 
 **5. Find your current public IP for SSH access**
 
@@ -1046,7 +1041,7 @@ aws ec2 describe-images --region us-west-2 --profile ec2-nginx-lab --owners amaz
 curl -4 https://checkip.amazonaws.com
 ```
 
-Use the returned address followed by `/32` in the SSH inbound rule.
+Expected result: Your current public IPv4 address. Use this address followed by `/32` in the SSH inbound rule.
 
 **6. Find existing EC2 key pairs**
 
@@ -1054,33 +1049,36 @@ Use the returned address followed by `/32` in the SSH inbound rule.
 aws ec2 describe-key-pairs --region us-west-2 --profile ec2-nginx-lab --query "KeyPairs[].{Name:KeyName,KeyPairId:KeyPairId}" --output table
 ```
 
-**7. Find existing security groups**
+Expected result: A list of key pairs available in the selected Region.
 
-Replace the VPC ID with the one discovered in your account:
+**7. Find existing security groups in your selected VPC**
+
+Replace `<VPC_ID>` with the VPC ID discovered in Step 2.
 
 ```bash
 aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=<VPC_ID>" --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}" --output table
 ```
 
-**8. Retrieve your instance's current IP addresses**
+Expected result: A list of security groups belonging to the selected VPC.
 
-Replace `<INSTANCE_ID>` with the ID returned by your launch command.
+**Section 17 completion checklist**
 
-```bash
-aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query "Reservations[0].Instances[0].{InstanceId:InstanceId,State:State.Name,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,AZ:Placement.AvailabilityZone}" --output table
-```
+Before moving to Section 18, confirm that you have:
 
-**9. Verify the instance's security groups**
+- Verified your AWS identity.
+- Identified your VPC and selected subnet.
+- Discovered a current Amazon Linux 2023 AMI.
+- Confirmed your current public IP address.
+- Checked the available EC2 key pairs.
+- Checked the existing security groups in your selected VPC.
 
-```bash
-aws ec2 describe-instances --instance-ids <INSTANCE_ID> --region us-west-2 --profile ec2-nginx-lab --query "Reservations[0].Instances[0].SecurityGroups[].{GroupId:GroupId,GroupName:GroupName}" --output table
-```
+No EC2 instance is launched in Section 17.
 
 ---
 
 ## 18. Launch the EC2 instance and install NGINX
 
-The original deployment was performed from WSL Ubuntu using the named profile. It created one Amazon Linux 2023 instance, attached a dedicated security group and an existing key pair, requested a public IPv4 address, configured an 8 GiB `gp3` root volume, and used EC2 user data to install and start NGINX.
+The original deployment was performed from WSL Ubuntu using the named AWS CLI profile. It created one Amazon Linux 2023 instance, attached a dedicated security group and an existing key pair, requested a public IPv4 address, configured an 8 GiB `gp3` root volume, and used EC2 user data to install and start NGINX.
 
 > **Important deployment order:** Complete the steps in this section in order:
 >
@@ -1088,7 +1086,8 @@ The original deployment was performed from WSL Ubuntu using the named profile. I
 > 2. Create the dedicated security group.
 > 3. Add and verify the inbound rules.
 > 4. Create or confirm the EC2 key pair and local private key.
-> 5. Launch the EC2 instance using the newly created security group and key pair.
+> 5. Confirm the launch values.
+> 6. Launch the EC2 instance.
 >
 > Do not run the launch command before the security group and key pair are ready.
 
@@ -1105,7 +1104,7 @@ For this public NGINX demonstration, we need two inbound rules:
 
 **Step 1: Confirm the VPC ID**
 
-Use the VPC ID discovered in Section 8. The original lab used:
+Use the VPC ID discovered in Section 17. The original lab used:
 
 ```text
 vpc-0307ce67a0df86851
@@ -1115,7 +1114,7 @@ For a new environment, replace this with your own VPC ID.
 
 **Step 2: Create the dedicated security group**
 
-Run:
+Replace `<VPC_ID>` with your selected VPC ID.
 
 ```bash
 aws ec2 create-security-group --group-name ec2-nginx-lab-sg --description "Security group for EC2 NGINX web application" --vpc-id <VPC_ID> --region us-west-2 --profile ec2-nginx-lab
@@ -1123,13 +1122,7 @@ aws ec2 create-security-group --group-name ec2-nginx-lab-sg --description "Secur
 
 The output returns a `GroupId`. Copy this value. You will use it in the inbound-rule and EC2 launch commands.
 
-Original lab screenshot:
-
-<img width="2125" height="122" alt="Security group creation output" src="https://github.com/user-attachments/assets/572c8087-de8c-4317-a7e0-49b69ca581c0" />
-
 **Step 3: Find your current public IP**
-
-Run:
 
 ```bash
 curl -4 https://checkip.amazonaws.com
@@ -1142,31 +1135,18 @@ For example, if the command returns `203.0.113.10`, the SSH source CIDR would be
 **Step 4: Add both inbound rules**
 
 Replace:
-
 - `<SECURITY_GROUP_ID>` with the `GroupId` returned in Step 2.
 - `<YOUR_PUBLIC_IP>` with the public IPv4 address returned in Step 3.
 
 ```bash
-aws ec2 authorize-security-group-ingress \
-  --group-id <SECURITY_GROUP_ID> \
-  --ip-permissions '[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"IpRanges":[{"CidrIp":"<YOUR_PUBLIC_IP>/32","Description":"SSH access from my public IP"}]},{"IpProtocol":"tcp","FromPort":80,"ToPort":80,"IpRanges":[{"CidrIp":"0.0.0.0/0","Description":"Public HTTP access"}]}]' \
-  --region us-west-2 \
-  --profile ec2-nginx-lab
+aws ec2 authorize-security-group-ingress --group-id <SECURITY_GROUP_ID> --ip-permissions '[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"IpRanges":[{"CidrIp":"<YOUR_PUBLIC_IP>/32","Description":"SSH access from my public IP"}]},{"IpProtocol":"tcp","FromPort":80,"ToPort":80,"IpRanges":[{"CidrIp":"0.0.0.0/0","Description":"Public HTTP access"}]}]' --region us-west-2 --profile ec2-nginx-lab
 ```
-
-Original lab screenshot:
-
-<img width="2007" height="632" alt="Security group inbound rules command" src="https://github.com/user-attachments/assets/30c1a068-b795-4f7a-a465-fcfb06a37d79" />
 
 **Step 5: Verify the inbound rules**
 
 ```bash
 aws ec2 describe-security-groups --group-ids <SECURITY_GROUP_ID> --region us-west-2 --profile ec2-nginx-lab --query "SecurityGroups[0].IpPermissions" --output table
 ```
-
-Original lab screenshot:
-
-<img width="1482" height="666" alt="Verify security group inbound rules" src="https://github.com/user-attachments/assets/f29bff48-9c60-4dfb-8882-66b400f7a330" />
 
 Confirm that TCP ports `22` and `80` are present with the intended sources.
 
@@ -1194,8 +1174,7 @@ If it exists and you still have its matching private key file, you can use it. D
 First, create the local SSH directory and restrict its permissions:
 
 ```bash
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
 ```
 
 Then create the key pair and save the returned private key locally:
@@ -1226,15 +1205,22 @@ Before launching, confirm the values you intend to use:
 
 | Parameter | Original lab value | For a new deployment |
 |:---|:---|:---|
-| Region | `us-west-2` | Use your selected Region |
-| AMI | `ami-0f4093d08169978db` | Re-discover a currently available AMI |
-| Instance type | `t3.micro` | Verify availability and pricing |
-| Key pair | `ec2-nginx-lab-key` | Use the key pair confirmed or created in Section 18.2 |
-| Security group | `sg-01a2155926d1b3e19` | Use the new `GroupId` from Section 18.1 |
-| Subnet | `subnet-02ecdd68edfbf7326` | Use a subnet in the selected VPC |
-| Root volume | 8 GiB `gp3` | Confirm the size and type you want |
+| Region | `us-west-2` | Use your selected Region. |
+| AMI | `ami-0f4093d08169978db` | Use the current AMI ID discovered in Section 17. |
+| Instance type | `t3.micro` | Verify availability and pricing. |
+| Key pair | `ec2-nginx-lab-key` | Use the key pair confirmed or created in Section 18.2. |
+| Security group | `sg-01a2155926d1b3e19` | Use the new `GroupId` from Section 18.1. |
+| Subnet | `subnet-02ecdd68edfbf7326` | Use the selected subnet from Section 17. |
+| Root volume | 8 GiB `gp3` | Confirm the size and type you want. |
 
 The original AMI ID and subnet ID are historical values. They may not be valid in another Region or account.
+
+Before continuing, make sure you have these four values ready:
+
+- `<AMI_ID>` — current Amazon Linux 2023 AMI ID.
+- `<KEY_PAIR_NAME>` — confirmed key pair name.
+- `<SECURITY_GROUP_ID>` — newly created security group ID.
+- `<SUBNET_ID>` — selected subnet ID.
 
 ### 18.4 Launch the EC2 instance
 
@@ -1247,16 +1233,15 @@ Replace these values before running:
 - `<SECURITY_GROUP_ID>` with the new security group ID created in Section 18.1.
 - `<SUBNET_ID>` with the selected subnet ID.
 
+**Run this complete command as one line:**
+
 ```bash
-aws ec2 run-instances --image-id <AMI_ID> --instance-type t3.micro --count 1 --key-name <KEY_PAIR_NAME> --security-group-ids <SECURITY_GROUP_ID> --subnet-id <SUBNET_ID> --associate-public-ip-address --block-device-mappings 'DeviceName=/dev/xvda,Ebs={VolumeSize=8,VolumeType=gp3,DeleteOnTermination=true}' --user-data '#!/bin/bash
-dnf install -y nginx
-systemctl enable --now nginx
-echo "<h1>My AWS EC2 Nginx Lab</h1><p>Nginx is running successfully!</p>" > /usr/share/nginx/html/index.html' --region us-west-2 --profile ec2-nginx-lab --query 'Instances[0].{InstanceId:InstanceId,State:State.Name,Type:InstanceType,AZ:Placement.AvailabilityZone}' --output table
+aws ec2 run-instances --image-id <AMI_ID> --instance-type t3.micro --count 1 --key-name <KEY_PAIR_NAME> --security-group-ids <SECURITY_GROUP_ID> --subnet-id <SUBNET_ID> --associate-public-ip-address --block-device-mappings 'DeviceName=/dev/xvda,Ebs={VolumeSize=8,VolumeType=gp3,DeleteOnTermination=true}' --user-data "$(printf '%s\n' '#!/bin/bash' 'dnf install -y nginx' 'systemctl enable --now nginx' 'echo "<h1>My AWS EC2 Nginx Lab</h1><p>Nginx is running successfully!</p>" > /usr/share/nginx/html/index.html')" --region us-west-2 --profile ec2-nginx-lab --query 'Instances[0].{InstanceId:InstanceId,State:State.Name,Type:InstanceType,AZ:Placement.AvailabilityZone}' --output table
 ```
 
 **Expected result:** The command should return an instance ID and its initial state. The initial state may be `pending`; wait for the instance to become `running` before testing SSH or HTTP.
 
-Record the instance ID returned by the command. You will need it for verification and cleanup.
+Record the instance ID returned by the command. You will need it for verification and cleanup in Sections 19 and 21.
 
 The original lab instance was:
 
