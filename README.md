@@ -1112,15 +1112,32 @@ vpc-0307ce67a0df86851
 
 For a new environment, replace this with your own VPC ID.
 
-**Step 2: Create the dedicated security group**
+**Step 2: Create or reuse the dedicated security group**
 
-Replace `<VPC_ID>` with your selected VPC ID.
+First, try creating the security group:
 
 ```bash
-aws ec2 create-security-group --group-name ec2-nginx-lab-sg --description "Security group for EC2 NGINX web application" --vpc-id <VPC_ID> --region us-west-2 --profile ec2-nginx-lab
+aws ec2 create-security-group --group-name ec2-nginx-lab-sg --description "Security group for EC2 NGINX web application" --vpc-id vpc-0307ce67a0df86851 --region us-west-2 --profile ec2-nginx-lab
 ```
 
-The output returns a `GroupId`. Copy this value. You will use it in the inbound-rule and EC2 launch commands.
+The output returns a `GroupId`. Copy this value.
+
+**Important:** If AWS returns `InvalidGroup.Duplicate`, the security group already exists in the selected VPC. Do not create another group or delete the existing one. Retrieve its details using:
+
+```bash
+aws ec2 describe-security-groups --region us-west-2 --profile ec2-nginx-lab --filters "Name=group-name,Values=ec2-nginx-lab-sg" "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId,InboundRules:IpPermissions}" --output json
+```
+
+Use the returned `GroupId` in the following steps.
+
+**Verified result from this lab:**
+
+- Security group name: `ec2-nginx-lab-sg`
+- Security group ID: `sg-0305c3222ac971de1`
+- VPC ID: `vpc-0307ce67a0df86851`
+- Initial inbound rules: None
+
+For a new environment, use the Group ID returned by your own AWS command instead of the historical value above.
 
 **Step 3: Find your current public IP**
 
@@ -1135,12 +1152,14 @@ For example, if the command returns `203.0.113.10`, the SSH source CIDR would be
 **Step 4: Add both inbound rules**
 
 Replace:
-- `<SECURITY_GROUP_ID>` with the `GroupId` returned in Step 2.
+- `<SECURITY_GROUP_ID>` with the Group ID obtained in Step 2.
 - `<YOUR_PUBLIC_IP>` with the public IPv4 address returned in Step 3.
 
 ```bash
 aws ec2 authorize-security-group-ingress --group-id <SECURITY_GROUP_ID> --ip-permissions '[{"IpProtocol":"tcp","FromPort":22,"ToPort":22,"IpRanges":[{"CidrIp":"<YOUR_PUBLIC_IP>/32","Description":"SSH access from my public IP"}]},{"IpProtocol":"tcp","FromPort":80,"ToPort":80,"IpRanges":[{"CidrIp":"0.0.0.0/0","Description":"Public HTTP access"}]}]' --region us-west-2 --profile ec2-nginx-lab
 ```
+
+**Note:** If these rules already exist, do not add them again. Inspect the current rules and add only missing rules.
 
 **Step 5: Verify the inbound rules**
 
@@ -1150,7 +1169,7 @@ aws ec2 describe-security-groups --group-ids <SECURITY_GROUP_ID> --region us-wes
 
 Confirm that TCP ports `22` and `80` are present with the intended sources.
 
-**Important:** Use the newly created security group ID in the EC2 launch command. Do not use the old security group ID `sg-01a2155926d1b3e19`; it belonged to the original lab and was deleted during cleanup.
+**Important:** Use the security group ID confirmed in Step 2 in the EC2 launch command. Do not use the old security group ID `sg-01a2155926d1b3e19`; it belonged to the original lab and was deleted during cleanup.
 
 ### 18.2 Create or confirm the EC2 key pair
 
