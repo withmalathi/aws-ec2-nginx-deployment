@@ -1188,6 +1188,13 @@ aws ec2 describe-key-pairs --region us-west-2 --profile ec2-nginx-lab --key-name
 
 If it exists and you still have its matching private key file, you can use it. Do not create another key pair with the same name.
 
+**Verified result from this lab:**
+
+- Key pair name: `ec2-nginx-lab-key`
+- Key pair ID: `key-0f875d77750209cca`
+- Key type: RSA
+- Creation date: `2026-10-26`
+
 **Step 2: If it does not exist, create a new key pair**
 
 First, create the local SSH directory and restrict its permissions:
@@ -1216,7 +1223,35 @@ ls -l ~/.ssh/ec2-nginx-lab-key.pem
 
 The file should be readable only by its owner. Do not upload this private key to GitHub or include it in screenshots.
 
+**Step 3: Verify the existing local private key**
+
+If the key pair already exists in AWS, verify that the corresponding private key is available locally:
+
+```bash
+ls -l ~/.ssh/ec2-nginx-lab-key.pem
+```
+
+Verify that the private key is valid and readable:
+
+```bash
+ssh-keygen -y -f ~/.ssh/ec2-nginx-lab-key.pem
+```
+
+A successful result displays a public key beginning with `ssh-rsa`.
+
+**Verified local key file from this lab:**
+
+- File path: `/home/malathi/.ssh/ec2-nginx-lab-key.pem`
+- Owner: `malathi`
+- File permissions: `400`
+- File size: `1679 bytes`
+- Private key verification: Successful
+
+The existing private key was successfully verified using `ssh-keygen -y`.
+
 **If the key pair exists in AWS but the private key file is missing:** AWS cannot retrieve the original private key. Create a new key pair with a different name, save its private key securely, and use the new key pair name in the EC2 launch command.
+
+**Important:** If the key pair and matching private key already exist, reuse them. Do not run the key creation command again or overwrite the existing private key.
 
 ### 18.3 Confirm the AMI and launch values
 
