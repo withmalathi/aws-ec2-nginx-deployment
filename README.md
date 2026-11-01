@@ -1255,26 +1255,80 @@ The existing private key was successfully verified using `ssh-keygen -y`.
 
 ### 18.3 Confirm the AMI and launch values
 
-Before launching, confirm the values you intend to use:
+Before launching, confirm the values you intend to use. This step helps prevent errors caused by outdated AMI IDs, incorrect subnet IDs, or security groups from previous deployments.
 
-| Parameter | Original lab value | For a new deployment |
-|:---|:---|:---|
+| **Parameter** | **Original lab value** | **Current verified value / new deployment** |
+|---|---|---|
 | Region | `us-west-2` | Use your selected Region. |
-| AMI | `ami-0f4093d08169978db` | Use the current AMI ID discovered in Section 17. |
+| AMI | `ami-0f4093d08169978db` | `ami-09f02015912e773f7` (discovered in Section 17). |
 | Instance type | `t3.micro` | Verify availability and pricing. |
-| Key pair | `ec2-nginx-lab-key` | Use the key pair confirmed or created in Section 18.2. |
-| Security group | `sg-01a2155926d1b3e19` | Use the new `GroupId` from Section 18.1. |
-| Subnet | `subnet-02ecdd68edfbf7326` | Use the selected subnet from Section 17. |
+| Key pair | `ec2-nginx-lab-key` | `ec2-nginx-lab-key` (existing key pair verified in Section 18.2). |
+| Security group | `sg-01a2155926d1b3e19` | `sg-0305c3222ac971de1` (existing group verified in Section 18.1). |
+| Subnet | `subnet-02ecdd68edfbf7326` | Use the selected subnet from Section 17 and verify it. |
 | Root volume | 8 GiB `gp3` | Confirm the size and type you want. |
 
 The original AMI ID and subnet ID are historical values. They may not be valid in another Region or account.
 
-Before continuing, make sure you have these four values ready:
+**Step 1: Verify the AMI**
+
+```bash
+aws ec2 describe-images --image-ids ami-09f02015912e773f7 --region us-west-2 --profile ec2-nginx-lab --query "Images[].{AMI:ImageId,Name:Name,State:State,Architecture:Architecture}" --output table
+```
+
+Confirm that the AMI exists, is available, and has the expected architecture.
+
+For a new deployment, replace the AMI ID with the latest suitable AMI discovered in Section 17.
+
+**Step 2: Verify the selected subnet**
+
+```bash
+aws ec2 describe-subnets --subnet-ids subnet-02ecdd68edfbf7326 --region us-west-2 --profile ec2-nginx-lab --query "Subnets[].{SubnetId:SubnetId,VpcId:VpcId,AvailabilityZone:AvailabilityZone,State:State,AvailableIPs:AvailableIpAddressCount}" --output table
+```
+
+Confirm that the subnet is available, belongs to the intended VPC, and has available IP addresses.
+
+For a new deployment, replace the subnet ID with your selected subnet from Section 17.
+
+**Step 3: Verify the security group**
+
+```bash
+aws ec2 describe-security-groups --group-ids sg-0305c3222ac971de1 --region us-west-2 --profile ec2-nginx-lab --query "SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId,InboundRules:IpPermissions}" --output json
+```
+
+Confirm that the security group belongs to the intended VPC and has the required SSH and HTTP inbound rules configured in Section 18.1.
+
+For a new deployment, replace the security group ID with the Group ID confirmed in Section 18.1.
+
+**Step 4: Verify the key pair**
+
+```bash
+aws ec2 describe-key-pairs --region us-west-2 --profile ec2-nginx-lab --key-names ec2-nginx-lab-key --output table
+```
+
+Confirm that the key pair exists and that its matching private key is available locally, as verified in Section 18.2.
+
+**Step 5: Verify instance type availability**
+
+First, use the Availability Zone returned by Step 2. For example, if the selected subnet is in `us-west-2a`, run:
+
+```bash
+aws ec2 describe-instance-type-offerings --location-type availability-zone --filters "Name=location,Values=us-west-2a" "Name=instance-type,Values=t3.micro" --region us-west-2 --profile ec2-nginx-lab --output table
+```
+
+Confirm that `t3.micro` is offered in the selected subnet's Availability Zone. Check current AWS pricing separately before launching.
+
+**Step 6: Prepare the final launch values**
+
+Before proceeding to the EC2 launch command, make sure you have these four values ready:
 
 - `<AMI_ID>` — current Amazon Linux 2023 AMI ID.
 - `<KEY_PAIR_NAME>` — confirmed key pair name.
-- `<SECURITY_GROUP_ID>` — newly created security group ID.
-- `<SUBNET_ID>` — selected subnet ID.
+- `<SECURITY_GROUP_ID>` — confirmed security group ID.
+- `<SUBNET_ID>` — selected and verified subnet ID.
+
+Use these confirmed values in the EC2 launch command in the next section. Do not blindly reuse historical resource IDs from the original lab.
+
+**Important:** These verification commands are read-only. They do not create or modify AWS resources.
 
 ### 18.4 Launch the EC2 instance
 
