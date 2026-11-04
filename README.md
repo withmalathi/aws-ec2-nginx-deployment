@@ -438,6 +438,19 @@ a subnet within a VPC.
 
 Run:
 
+```bash
+VPC_ID=$(aws ec2 describe-vpcs \
+  --filters "Name=isDefault,Values=true" \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --query 'Vpcs[0].VpcId' \
+  --output text)
+
+echo "Default VPC discovered."
+```
+
+Here I am checking the VPC state and CIDR range.
+
 ``` bash
 
 aws ec2 describe-vpcs --region us-west-2 --profile ec2-nginx-lab --query "Vpcs[].{VpcId:VpcId,State:State,IsDefault:IsDefault,CidrBlock:CidrBlock}" --output table
@@ -466,7 +479,7 @@ created or modified.
 Run:
 
 ``` bash
-aws ec2 describe-subnets --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,State:State,DefaultForAZ:DefaultForAz,PublicIP:MapPublicIpOnLaunch,CIDR:CidrBlock}" --output table
+aws ec2 describe-subnets --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,State:State,DefaultForAZ:DefaultForAz,MapPublicIP:MapPublicIpOnLaunch,CIDR:CidrBlock,AvailableIPs:AvailableIpAddressCount}" --output table
 
 ```
 
@@ -500,6 +513,10 @@ For a closer inspection of the subnet in `us-west-2a`, run:
 aws ec2 describe-subnets --region us-west-2 --profile ec2-nginx-lab --subnet-ids subnet-02ecdd68edfbf7326 --query "Subnets[].{SubnetId:SubnetId,AZ:AvailabilityZone,Cidr:CidrBlock,State:State,MapPublicIpOnLaunch:MapPublicIpOnLaunch,VpcId:VpcId}" --output table
 ```
 
+```bash
+export SUBNET_ID=subnet-02ecdd68edfbf7326
+```
+
 Observed values:
 
 -   Subnet: `subnet-02ecdd68edfbf7326`
@@ -527,6 +544,17 @@ Run:
 
 ``` bash
 aws ec2 describe-route-tables --region us-west-2 --profile ec2-nginx-lab --filters "Name=vpc-id,Values=vpc-0307ce67a0df86851" --query "RouteTables[].{RouteTableId:RouteTableId,Associations:Associations[].SubnetId,Routes:Routes[].{Destination:DestinationCidrBlock,Gateway:GatewayId,State:State}}" --output json
+```
+
+> OR
+
+```bash
+aws ec2 describe-route-tables \
+  --filters "Name=vpc-id,Values=$VPC_ID" "Name=association.main,Values=true" \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --query 'RouteTables[].{RouteTableId:RouteTableId,Routes:Routes[?DestinationCidrBlock==`0.0.0.0/0`].{Destination:DestinationCidrBlock,Target:GatewayId,State:State}}' \
+  --output table
 ```
 
 The discovered route table was `rtb-0bc5c0a06e2d2b2c0`. Its routes were:
@@ -577,6 +605,17 @@ Run:
 ``` bash
 
 aws ec2 describe-internet-gateways --region us-west-2 --profile ec2-nginx-lab --internet-gateway-ids igw-0b25879d76a25f195 --query "InternetGateways[].{InternetGatewayId:InternetGatewayId,Attachments:Attachments[].{VpcId:VpcId,State:State}}" --output json
+```
+
+> OR
+
+```bash
+aws ec2 describe-internet-gateways \
+  --filters "Name=attachment.vpc-id,Values=$VPC_ID" \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --query 'InternetGateways[].{State:Attachments[0].State,GatewayId:InternetGatewayId}' \
+  --output table
 ```
 
 The command confirmed that:
@@ -641,10 +680,36 @@ traffic.
 
 ### 11.1 Discover Amazon Linux 2023 AMIs
 
-Run:
+> This checks how many matching AMIs AWS returned.
+
+```bash
+aws ec2 describe-images \
+  --owners amazon \
+  --filters \
+    "Name=name,Values=al2023-ami-2023.*-x86_64" \
+    "Name=state,Values=available" \
+    "Name=architecture,Values=x86_64" \
+    "Name=root-device-type,Values=ebs" \
+  --region "$REGION" \
+  --profile "$PROFILE" \
+  --query 'length(Images)' \
+  --output text
+```
+
+Run: Display the latest five
 
 ``` bash
-aws ec2 describe-images --region us-west-2 --profile ec2-nginx-lab --owners amazon --filters "Name=name,Values=al2023-ami-2023.*-x86_64" "Name=state,Values=available" "Name=architecture,Values=x86_64" "Name=root-device-type,Values=ebs" --query "Images | sort_by(@, &CreationDate)[-5:].[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate,Architecture:Architecture}" --output json
+aws ec2 describe-images \
+  --owners amazon \
+  --filters \
+    "Name=name,Values=al2023-ami-2023.*-x86_64" \
+    "Name=state,Values=available" \
+    "Name=architecture,Values=x86_64" \
+    "Name=root-device-type,Values=ebs" \
+  --region "$REGION" \
+  --profile "$PROFILE" \
+  --query 'sort_by(Images, &CreationDate)[-5:].[ImageId,Name,CreationDate]' \
+  --output table
 ```
 
 Five available Amazon Linux 2023 AMIs were returned. Examples from the
@@ -657,6 +722,40 @@ observed output include:
 | `ami-0f4093d08169978db` | `al2023-ami-2023.12.20261026.1-kernel-6.12-x86_64` | `x86_64`     |
 | `ami-074462d12abec759f` | `al2023-ami-2023.12.20261026.1-kernel-6.1-x86_64`  | `x86_64`     |
 | `ami-0829b74b2a8c619b7` | `al2023-ami-2023.12.20261026.1-kernel-6.18-x86_64` | `x86_64`     |
+
+> OR
+
+```bash
+aws ec2 describe-images \
+  --owners amazon \
+  --filters \
+    "Name=name,Values=al2023-ami-2023.*-x86_64" \
+    "Name=state,Values=available" \
+    "Name=architecture,Values=x86_64" \
+    "Name=root-device-type,Values=ebs" \
+  --region "$REGION" \
+  --profile "$PROFILE" \
+  --query 'Images | sort_by(@, &CreationDate)[-1].{ImageId:ImageId,Name:Name}' \
+  --output table
+```
+
+> I am storing that value in a variable called AMI_ID.
+
+```bash
+AMI_ID=$(aws ec2 describe-images \
+  --owners amazon \
+  --filters \
+    "Name=name,Values=al2023-ami-2023.*-x86_64" \
+    "Name=state,Values=available" \
+    "Name=architecture,Values=x86_64" \
+    "Name=root-device-type,Values=ebs" \
+  --region "$REGION" \
+  --profile "$PROFILE" \
+  --query 'Images | sort_by(@, &CreationDate)[-1].ImageId' \
+  --output text)
+
+test "$AMI_ID" != "None" && echo "AMI discovery successful."
+```
 
 The image query returned available images owned by Amazon, with x86-64
 architecture and EBS root devices. AMI IDs are region-specific, and the
